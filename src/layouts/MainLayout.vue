@@ -194,7 +194,6 @@ const mainMenu = [
     children: [
       { label: 'All Products', icon: 'fal fa-list', to: '/products' },
       { label: 'Categories', icon: 'fal fa-tags', to: '/products/categories' },
-      { label: 'Variants', icon: 'fal fa-cogs', to: '/products/variants' },
     ],
   },
   { label: 'Orders', icon: 'fal fa-shopping-cart', to: '/orders' },

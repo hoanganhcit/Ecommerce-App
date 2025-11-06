@@ -1,4 +1,12 @@
 const routes = [
+  // Landing/Store Routes
+  {
+    path: '/',
+    component: () => import('layouts/LandingLayout.vue'),
+    children: [{ path: '', component: () => import('pages/home/LandingPage.vue') }],
+  },
+
+  // Auth Routes
   {
     path: '/login',
     component: () => import('layouts/LoginLayout.vue'),
@@ -9,12 +17,23 @@ const routes = [
     component: () => import('layouts/LoginLayout.vue'),
     children: [{ path: '', component: () => import('pages/SignUpPage.vue') }],
   },
+
+  // Admin Dashboard Routes
   {
-    path: '/',
+    path: '/dashboard',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [{ path: '', component: () => import('pages/DashboardPage.vue') }],
+  },
+
+  // Product Management Routes
+  {
+    path: '/products',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') },
-      { path: 'dashboard', component: () => import('pages/DashboardPage.vue') },
+      { path: '', component: () => import('pages/products/ProductListPage.vue') },
+      { path: 'add', component: () => import('pages/products/AddProductPage.vue') },
+      { path: 'edit/:id', component: () => import('pages/products/AddProductPage.vue') },
+      { path: 'categories', component: () => import('pages/products/CategoryPage.vue') },
     ],
   },
 

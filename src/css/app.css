@@ -1,7 +1,6 @@
 /* app global css */
 @import 'tailwindcss';
 @custom-variant dark (.dark &);
-
 @import url('https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400..900&display=swap');
 body {
   font-family: 'Maven Pro', sans-serif;

@@ -324,27 +324,37 @@
             <div
               v-for="(product, index) in popularProducts"
               :key="index"
-              class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150"
+              class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150 cursor-pointer group"
             >
-              <!-- Product Image/Icon -->
-              <div
-                class="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                :class="product.bgColor"
-              >
-                {{ product.name.charAt(0) }}
+              <!-- Product Image -->
+              <div class="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 shadow-sm">
+                <img
+                  :src="product.image"
+                  :alt="product.name"
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  @error="(e) => (e.target.src = 'https://via.placeholder.com/100')"
+                />
               </div>
               <!-- Product Info -->
-              <div class="flex-1">
-                <div class="flex items-center justify-between mb-1">
-                  <div class="text-sm font-semibold text-gray-900">{{ product.name }}</div>
-                  <span class="text-sm font-bold text-gray-900"
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between mb-1">
+                  <div class="flex-1 min-w-0 mr-2">
+                    <div class="text-sm font-semibold text-gray-900 truncate">
+                      {{ product.name }}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5 !mb-0">{{ product.category }}</p>
+                  </div>
+                  <span class="text-sm font-bold text-gray-900 flex-shrink-0"
                     >${{ product.price.toFixed(2) }}</span
                   >
                 </div>
-                <div class="flex items-center justify-between">
-                  <p class="text-xs text-gray-600">{{ product.sold }} sold</p>
+                <div class="flex items-center gap-3 justify-between">
+                  <p class="text-xs text-gray-600 flex items-center gap-1 !mb-0">
+                    <q-icon name="shopping_cart" size="14px" class="text-gray-400" />
+                    {{ product.sold }} sold
+                  </p>
                   <!-- Progress Bar -->
-                  <div class="flex-1 max-w-[100px] ml-4">
+                  <div class="flex-1 max-w-[80px]">
                     <div class="w-full bg-gray-200 rounded-full h-1.5">
                       <div
                         class="h-1.5 rounded-full transition-all duration-500"
@@ -353,6 +363,7 @@
                       ></div>
                     </div>
                   </div>
+                  <span class="text-xs font-medium text-gray-500">{{ product.percentage }}%</span>
                 </div>
               </div>
             </div>
@@ -383,6 +394,8 @@ const popularProducts = ref([
     percentage: 95,
     bgColor: 'bg-blue-600',
     progressColor: 'bg-blue-600',
+    image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=100&h=100&fit=crop',
+    category: "Men's Wear",
   },
   {
     name: 'Summer Floral Dress',
@@ -391,6 +404,8 @@ const popularProducts = ref([
     percentage: 85,
     bgColor: 'bg-pink-500',
     progressColor: 'bg-pink-500',
+    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=100&h=100&fit=crop',
+    category: "Women's Wear",
   },
   {
     name: 'Slim Fit Chinos',
@@ -399,6 +414,8 @@ const popularProducts = ref([
     percentage: 72,
     bgColor: 'bg-amber-600',
     progressColor: 'bg-amber-600',
+    image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=100&h=100&fit=crop',
+    category: "Men's Wear",
   },
   {
     name: 'Cotton T-Shirt Pack',
@@ -407,6 +424,8 @@ const popularProducts = ref([
     percentage: 60,
     bgColor: 'bg-gray-700',
     progressColor: 'bg-gray-700',
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop',
+    category: 'Basics',
   },
   {
     name: 'Leather Ankle Boots',
@@ -415,6 +434,38 @@ const popularProducts = ref([
     percentage: 45,
     bgColor: 'bg-stone-800',
     progressColor: 'bg-stone-800',
+    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=100&h=100&fit=crop',
+    category: 'Footwear',
+  },
+  {
+    name: 'Wool Blend Coat',
+    price: 199.99,
+    sold: 543,
+    percentage: 38,
+    bgColor: 'bg-slate-700',
+    progressColor: 'bg-slate-700',
+    image: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=100&h=100&fit=crop',
+    category: "Women's Wear",
+  },
+  {
+    name: 'Designer Sunglasses',
+    price: 149.99,
+    sold: 487,
+    percentage: 35,
+    bgColor: 'bg-indigo-600',
+    progressColor: 'bg-indigo-600',
+    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100&h=100&fit=crop',
+    category: 'Accessories',
+  },
+  {
+    name: 'Canvas Sneakers',
+    price: 69.99,
+    sold: 421,
+    percentage: 30,
+    bgColor: 'bg-teal-600',
+    progressColor: 'bg-teal-600',
+    image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=100&h=100&fit=crop',
+    category: 'Footwear',
   },
 ])
 
