@@ -11,44 +11,31 @@
       autoplay
       class="full-height"
     >
-      <!-- Slide 1 -->
-      <q-carousel-slide name="1" class="slide-1">
-        <div class="slide-content">
-          <div class="subtitle">New Collection 2025</div>
-          <h1 class="title">Discover Your Style</h1>
-          <button
-            @click="goToShop"
-            class="bg-gray-900 text-white hover:bg-gray-700 px-8 py-3 text-xs text-uppercase spacing-2 !font-semibold tracking-widest"
-          >
-            Start Shopping Now
-          </button>
-        </div>
-      </q-carousel-slide>
+      <q-carousel-slide
+        v-for="slideItem in slides"
+        :key="slideItem.id"
+        :name="slideItem.id"
+        class="slide-item"
+      >
+        <!-- Background Image -->
+        <img
+          :src="slideItem.image"
+          :alt="slideItem.title"
+          class="absolute inset-0 w-full h-full object-cover"
+        />
 
-      <!-- Slide 2 -->
-      <q-carousel-slide name="2" class="slide-2">
-        <div class="slide-content">
-          <div class="subtitle">Summer Sale</div>
-          <h1 class="title">Up to 50% Off</h1>
-          <button
-            @click="goToShop"
-            class="bg-gray-900 text-white hover:bg-gray-700 px-8 py-3 text-xs text-uppercase !font-semibold tracking-widest"
-          >
-            Start Shopping Now
-          </button>
-        </div>
-      </q-carousel-slide>
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black/10 z-[1]"></div>
 
-      <!-- Slide 3 -->
-      <q-carousel-slide name="3" class="slide-3">
+        <!-- Content -->
         <div class="slide-content">
-          <div class="subtitle">Premium Quality</div>
-          <h1 class="title">Fashion That Defines You</h1>
+          <div class="subtitle">{{ slideItem.subtitle }}</div>
+          <h1 class="title">{{ slideItem.title }}</h1>
           <button
             @click="goToShop"
-            class="bg-gray-900 text-white hover:bg-gray-700 px-8 py-3 text-xs text-uppercase !font-semibold tracking-widest"
+            class="bg-gray-900 text-white hover:bg-gray-700 px-8 py-3 text-xs uppercase !font-semibold tracking-widest transition-all duration-300 hover:scale-105"
           >
-            Start Shopping Now
+            {{ slideItem.buttonText }}
           </button>
         </div>
       </q-carousel-slide>
@@ -62,6 +49,31 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const slide = ref('1')
+
+// Slides data
+const slides = ref([
+  {
+    id: '1',
+    subtitle: 'New Collection 2025',
+    title: 'Discover Your Style',
+    buttonText: 'MUA SẮM NGAY',
+    image: 'sl-1.jpg',
+  },
+  {
+    id: '2',
+    subtitle: 'Summer Sale',
+    title: 'Up to 50% Off',
+    buttonText: 'MUA SẮM NGAY',
+    image: 'sl-2.jpg',
+  },
+  {
+    id: '3',
+    subtitle: 'Premium Quality',
+    title: 'Fashion That Defines You',
+    buttonText: 'MUA SẮM NGAY',
+    image: 'sl-3.jpg',
+  },
+])
 
 const goToShop = () => {
   router.push('/shop')
@@ -77,47 +89,18 @@ const goToShop = () => {
   height: 100vh;
 }
 
-.slide-1,
-.slide-2,
-.slide-3 {
+.slide-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-size: cover;
-  background-position: center;
   position: relative;
-}
-
-.slide-1::before,
-.slide-2::before,
-.slide-3::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1;
-}
-
-.slide-1 {
-  background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920');
-}
-
-.slide-2 {
-  background-image: url('https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1920');
-}
-
-.slide-3 {
-  background-image: url('https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=1920');
+  overflow: hidden;
 }
 
 .slide-content {
   position: relative;
   z-index: 2;
   text-align: center;
-  color: white;
   max-width: 800px;
   padding: 0 20px;
 }

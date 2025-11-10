@@ -6,13 +6,69 @@
 @theme {
   --font-family-sans: 'Quicksand', sans-serif;
 }
+:root {
+  --bg-landing: #f9fafb;
+}
 
 body {
   font-family: 'Quicksand', sans-serif !important;
+  background: var(--bg-landing);
+}
+.bg-landing {
+  background: var(--bg-landing) !important;
 }
 .min-h-auto .q-item {
   min-height: auto;
 }
 button {
   cursor: pointer;
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.product-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.product-image-wrapper {
+  position: relative;
+}
+
+/* Product Images */
+.product-image {
+  transition: opacity 0.4s ease-in-out;
+}
+
+.product-image-main {
+  opacity: 1;
+  z-index: 1;
+}
+
+.product-image-hover {
+  opacity: 0;
+  z-index: 2;
+}
+
+/* Hover effect - swap images */
+.product-card:hover .product-image-main {
+  opacity: 0;
+}
+
+.product-card:hover .product-image-hover {
+  opacity: 1;
 }

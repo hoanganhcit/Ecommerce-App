@@ -15,28 +15,32 @@
         >
           <span
             :class="[
-              'block w-6 h-0.5 bg-white transition-all duration-300 ease-in-out',
+              'block w-6 h-0.5 bg-gray-900 transition-all duration-300 ease-in-out',
               drawer ? '!rotate-45 translate-y-1.5' : 'translate-y-0',
             ]"
           ></span>
           <span
             :class="[
-              'block w-6 h-0.5 bg-white transition-all duration-300 ease-in-out my-1',
+              'block w-6 h-0.5 bg-gray-900 transition-all duration-300 ease-in-out my-1',
               drawer ? 'opacity-0' : 'opacity-100',
             ]"
           ></span>
           <span
             :class="[
-              'block w-6 h-0.5 bg-white transition-all duration-300 ease-in-out',
+              'block w-6 h-0.5 bg-gray-900 transition-all duration-300 ease-in-out',
               drawer ? '-rotate-45 -translate-y-1.5' : 'translate-y-0',
             ]"
           ></span>
         </button>
 
+        <router-link to="/" class="text-white font-bold text-lg">
+          <img src="/logo.png" alt="Logo" class="h-12" />
+        </router-link>
+
         <!-- Right: Cart Text -->
         <div
           @click="cartDrawer = !cartDrawer"
-          class="text-white font-medium cursor-pointer hover:text-gray-200 transition-colors"
+          class="text-gray-900 font-medium cursor-pointer hover:text-gray-700 transition-colors"
         >
           Giỏ Hàng ({{ cartCount }})
         </div>
@@ -75,38 +79,25 @@
 
           <!-- Shop with Expandable Categories -->
           <div class="space-y-2">
-            <button
-              @click="shopExpanded = !shopExpanded"
+            <router-link
+              to="/shop"
+              @click="drawer = false"
               class="w-full flex items-center justify-between !text-xs text-gray-700 hover:text-gray-900 transition-colors py-2 text-uppercase font-medium"
             >
-              <span>Danh Mục Sản Phẩm</span>
-              <span v-if="!shopExpanded" class="fal fa-plus"></span>
-              <span v-else class="fal fa-minus"></span>
-            </button>
+              <span>Tất Cả Sản Phẩm</span>
+            </router-link>
 
             <!-- Categories -->
-            <div v-if="shopExpanded" class="ml-4 space-y-2 mt-2">
-              <div v-for="category in categories" :key="category.id">
-                <button
-                  @click="toggleCategory(category.id)"
-                  class="w-full flex items-center justify-between !text-xs text-uppercase text-gray-600 hover:text-gray-900 transition-colors py-1"
-                >
-                  <span>{{ category.name }}</span>
-                  <span v-if="!category.expanded" class="fal fa-plus"></span>
-                  <span v-else class="fal fa-minus"></span>
-                </button>
-                <div v-if="category.expanded" class="ml-3 mt-1 space-y-2">
-                  <router-link
-                    v-for="item in category.items"
-                    :key="item.slug"
-                    :to="`/shop/${category.slug}/${item.slug}`"
-                    @click="drawer = false"
-                    class="block text-xs text-gray-500 hover:text-gray-900 py-0.5"
-                  >
-                    {{ item.name }}
-                  </router-link>
-                </div>
-              </div>
+            <div class="ml-4 space-y-2">
+              <router-link
+                v-for="category in categories"
+                :key="category.id"
+                :to="`/shop/${category.slug}`"
+                @click="drawer = false"
+                class="block !text-xs text-uppercase text-gray-600 hover:text-gray-900 transition-colors py-1.5 font-medium"
+              >
+                {{ category.name }}
+              </router-link>
             </div>
           </div>
 
@@ -263,57 +254,34 @@ const router = useRouter()
 const drawer = ref(false)
 const cartDrawer = ref(false)
 
-// Menu expansion states
-const shopExpanded = ref(false)
-
 // Categories data
 const categories = ref([
   {
-    id: 'men',
-    name: 'Nam',
+    id: 1,
+    name: 'Thời Trang Nam',
     slug: 'men',
-    expanded: false,
-    items: [
-      { name: 'Áo Sơ Mi', slug: 'shirts' },
-      { name: 'Áo Polo', slug: 'polo' },
-      { name: 'Áo Thun', slug: 'tshirts' },
-      { name: 'Áo Khoác', slug: 'jackets' },
-      { name: 'Quần Jeans', slug: 'jeans' },
-    ],
   },
   {
-    id: 'women',
-    name: 'Nữ',
+    id: 2,
+    name: 'Thời Trang Nữ',
     slug: 'women',
-    expanded: false,
-    items: [
-      { name: 'Váy Đầm', slug: 'dresses' },
-      { name: 'Áo Sơ Mi', slug: 'blouses' },
-      { name: 'Áo Thun', slug: 'tshirts' },
-      { name: 'Áo Khoác', slug: 'jackets' },
-      { name: 'Chân Váy', slug: 'skirts' },
-    ],
   },
   {
-    id: 'accessories',
+    id: 3,
     name: 'Phụ Kiện',
     slug: 'accessories',
-    expanded: false,
-    items: [
-      { name: 'Túi Xách', slug: 'bags' },
-      { name: 'Thắt Lưng', slug: 'belts' },
-      { name: 'Đồng Hồ', slug: 'watches' },
-      { name: 'Kính Mát', slug: 'sunglasses' },
-    ],
+  },
+  {
+    id: 4,
+    name: 'Giày Dép',
+    slug: 'shoes',
+  },
+  {
+    id: 5,
+    name: 'Túi Xách',
+    slug: 'bags',
   },
 ])
-
-const toggleCategory = (categoryId) => {
-  const category = categories.value.find((c) => c.id === categoryId)
-  if (category) {
-    category.expanded = !category.expanded
-  }
-}
 
 // Sample cart items
 const cartItems = ref([

@@ -3,7 +3,12 @@ const routes = [
   {
     path: '/',
     component: () => import('layouts/LandingLayout.vue'),
-    children: [{ path: '', component: () => import('pages/home/LandingPage.vue') }],
+    children: [
+      { path: '', component: () => import('pages/home/LandingPage.vue') },
+      { path: 'shop', component: () => import('pages/home/ProductsListPage.vue') },
+      { path: 'shop/:category', component: () => import('pages/home/ProductsListPage.vue') },
+      { path: 'product/:slug', component: () => import('pages/home/ProductDetailPage.vue') },
+    ],
   },
 
   // Auth Routes
