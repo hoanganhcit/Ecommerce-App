@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center gap-3 mb-2">
-        <q-btn icon="arrow_back" flat round @click="$router.push('/products')" />
+        <q-btn icon="arrow_back" flat round @click="$router.push('/admin/products')" />
         <div>
           <div class="text-3xl font-bold text-gray-800">
             {{ isEditMode ? 'Edit Product' : 'Add New Product' }}

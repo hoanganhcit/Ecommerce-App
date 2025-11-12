@@ -20,11 +20,7 @@
         <div>
           <!-- Logo -->
           <div class="flex items-center gap-2 p-4">
-            <div
-              class="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold"
-            >
-              <q-icon name="store" size="24px" />
-            </div>
+            <img src="/favicon.ico" alt="Logo" class="h-10 w-10 object-contain" />
             <span class="text-lg font-semibold text-gray-800"> Ecommerce Admin </span>
           </div>
 
@@ -187,24 +183,24 @@ watch(
 )
 
 const mainMenu = [
-  { label: 'Dashboard', icon: 'fal fa-tachometer-alt', to: '/dashboard' },
+  { label: 'Dashboard', icon: 'fal fa-tachometer-alt', to: '/admin/dashboard' },
   {
     label: 'Products',
     icon: 'fal fa-box-alt',
     children: [
-      { label: 'All Products', icon: 'fal fa-list', to: '/products' },
-      { label: 'Categories', icon: 'fal fa-tags', to: '/products/categories' },
+      { label: 'All Products', icon: 'fal fa-list', to: '/admin/products' },
+      { label: 'Categories', icon: 'fal fa-tags', to: '/admin/products/categories' },
     ],
   },
-  { label: 'Orders', icon: 'fal fa-shopping-cart', to: '/orders' },
-  { label: 'Customers', icon: 'fal fa-users', to: '/customers' },
-  { label: 'Analytics', icon: 'fal fa-chart-line', to: '/analytics' },
-  { label: 'Settings', icon: 'fal fa-cog', to: '/settings' },
+  { label: 'Orders', icon: 'fal fa-shopping-cart', to: '/admin/orders' },
+  { label: 'Customers', icon: 'fal fa-users', to: '/admin/customers' },
+  { label: 'Analytics', icon: 'fal fa-chart-line', to: '/admin/analytics' },
+  { label: 'Settings', icon: 'fal fa-cog', to: '/admin/settings' },
 ]
 
 // Chuyển đến trang Settings
 const goToSettings = () => {
-  router.push('/settings')
+  router.push('/admin/settings')
 }
 
 // Xử lý Sign Out

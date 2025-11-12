@@ -54,22 +54,22 @@ const slide = ref('1')
 const slides = ref([
   {
     id: '1',
-    subtitle: 'New Collection 2025',
-    title: 'Discover Your Style',
+    subtitle: 'Bộ Sưu Tập Mới 2025',
+    title: 'Khám Phá Phong Cách Của Bạn',
     buttonText: 'MUA SẮM NGAY',
     image: 'sl-1.jpg',
   },
   {
     id: '2',
-    subtitle: 'Summer Sale',
-    title: 'Up to 50% Off',
+    subtitle: 'Giảm Giá Mùa Hè',
+    title: 'Giảm Đến 50%',
     buttonText: 'MUA SẮM NGAY',
     image: 'sl-2.jpg',
   },
   {
     id: '3',
-    subtitle: 'Premium Quality',
-    title: 'Fashion That Defines You',
+    subtitle: 'Chất Lượng Cao Cấp',
+    title: 'Thời Trang Định Hình Phong Cách Bạn',
     buttonText: 'MUA SẮM NGAY',
     image: 'sl-3.jpg',
   },

@@ -13,7 +13,7 @@
           color="primary"
           unelevated
           class="px-6"
-          @click="$router.push('/products/add')"
+          @click="$router.push('/admin/products/add')"
         />
       </div>
     </div>
@@ -427,7 +427,7 @@ const endIndex = computed(() =>
 
 // Methods
 const editProduct = (product) => {
-  router.push(`/products/edit/${product.id}`)
+  router.push(`/admin/products/edit/${product.id}`)
 }
 
 const viewProduct = (product) => {

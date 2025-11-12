@@ -1,0 +1,1142 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Thời trang Nam",
+      "slug": "men",
+      "description": "Bộ sưu tập thời trang dành cho nam giới",
+      "image": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1423,c_limit/e775d49b-d998-4c7b-8b6e-eeea69b0b6f6/nike-just-do-it.jpg",
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": 2,
+      "name": "Thời trang Nữ",
+      "slug": "women",
+      "description": "Bộ sưu tập thời trang dành cho nữ giới",
+      "image": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1423,c_limit/f0d3a5e3-46b6-4c5e-8b0d-4e8e8e8e8e8e/nike-women.jpg",
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": 3,
+      "name": "Phụ kiện",
+      "slug": "accessories",
+      "description": "Phụ kiện thời trang cao cấp",
+      "image": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1423,c_limit/c5e9e9e9-e9e9-e9e9-e9e9-e9e9e9e9e9e9/nike-accessories.jpg",
+      "active": true,
+      "order": 3
+    },
+    {
+      "id": 4,
+      "name": "Giày dép",
+      "slug": "shoes",
+      "description": "Giày dép thời trang, thể thao",
+      "image": "https://brand.assets.adidas.com/image/upload/f_auto,q_auto,fl_lossy/if_w_gt_1920,w_1920/running_ss24_duramo_sustain_launch_p5_hp_mh_d_76f2777047.jpg",
+      "active": true,
+      "order": 4
+    },
+    {
+      "id": 5,
+      "name": "Túi xách",
+      "slug": "bags",
+      "description": "Túi xách, balo cao cấp",
+      "image": "https://brand.assets.adidas.com/image/upload/f_auto,q_auto,fl_lossy/if_w_gt_1920,w_1920/originals_fw23_adicolor_launch_p3_mh_d_64d16c80f7.jpg",
+      "active": true,
+      "order": 5
+    }
+  ],
+  "collections": [
+    {
+      "id": 1,
+      "name": "Bộ sưu tập Xuân Hè 2025",
+      "slug": "spring-summer-2025",
+      "description": "Bộ sưu tập thời trang mới nhất cho mùa xuân hè",
+      "image": "https://static.zara.net/photos///contents/mkt/spots/ss24-north-woman-new/subhome-xmedia-25//w/1920/IMAGE-landscape-fill-9c5472a8-c409-47e1-bb49-848e94fa78a8-default_0.jpg",
+      "startDate": "2025-03-01",
+      "endDate": "2025-08-31",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Bộ sưu tập Thu Đông 2024",
+      "slug": "fall-winter-2024",
+      "description": "Ấm áp và phong cách cho mùa thu đông",
+      "image": "https://brand.assets.adidas.com/image/upload/f_auto,q_auto,fl_lossy/if_w_gt_1920,w_1920/fw23_tcc_sustain_launch_hp_mh_d_5a4e7e5e5e.jpg",
+      "startDate": "2024-09-01",
+      "endDate": "2025-02-28",
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "Office Wear",
+      "slug": "office-wear",
+      "description": "Thời trang công sở thanh lịch",
+      "image": "https://static.zara.net/photos///contents/mkt/spots/aw23-north-woman-formal/subhome-xmedia-26//w/1920/IMAGE-landscape-fill-8b8b8b8b-8b8b-8b8b-8b8b-8b8b8b8b8b8b-default_0.jpg",
+      "startDate": "2024-01-01",
+      "endDate": null,
+      "active": true
+    },
+    {
+      "id": 4,
+      "name": "Streetwear",
+      "slug": "streetwear",
+      "description": "Phong cách đường phố năng động",
+      "image": "https://brand.assets.adidas.com/image/upload/f_auto,q_auto,fl_lossy/if_w_gt_1920,w_1920/originals_ss24_campus_launch_p1_mh_d_01_d34c9d5e5e.jpg",
+      "startDate": "2024-01-01",
+      "endDate": null,
+      "active": true
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "ASM001",
+      "name": "Áo sơ mi nam cao cấp",
+      "slug": "ao-so-mi-nam-cao-cap",
+      "description": "Áo sơ mi nam chất liệu cotton 100%, thoáng mát, phù hợp cho môi trường công sở và dạo phố",
+      "price": 450000,
+      "originalPrice": 650000,
+      "discount": 30,
+      "categoryId": 1,
+      "collectionIds": [3],
+      "images": [
+        "https://static.nike.com/a/images/t_web_pw_592_v2/f_auto/7c4cce35-7b6d-44fe-8dc5-edea2b4796a5/AS+M+NL+SOLO+SWSH+BB+FZ+HOODIE.png",
+        "https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto/dc724edf-190e-4277-88f7-d799868313e9/AS+M+NL+SOLO+SWSH+BB+FZ+HOODIE.png",
+        "https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto/5e51273b-e21e-40be-b192-806b99208594/AS+M+NL+SOLO+SWSH+BB+FZ+HOODIE.png",
+        "https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto/5e663435-7cc7-488b-912d-76b3786605a5/AS+M+NL+SOLO+SWSH+BB+FZ+HOODIE.png"
+      ],
+      "variants": [
+        {
+          "id": 1,
+          "size": "S",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 15,
+          "sku": "ASM001-S-WHITE"
+        },
+        {
+          "id": 2,
+          "size": "M",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 25,
+          "sku": "ASM001-M-WHITE"
+        },
+        {
+          "id": 3,
+          "size": "L",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 20,
+          "sku": "ASM001-L-WHITE"
+        },
+        {
+          "id": 4,
+          "size": "M",
+          "color": "Xanh Navy",
+          "colorCode": "#1E3A8A",
+          "stock": 18,
+          "sku": "ASM001-M-NAVY"
+        },
+        {
+          "id": 5,
+          "size": "L",
+          "color": "Xanh Navy",
+          "colorCode": "#1E3A8A",
+          "stock": 12,
+          "sku": "ASM001-L-NAVY"
+        }
+      ],
+      "rating": 4.5,
+      "reviews": 128,
+      "tags": ["mới", "bán chạy"],
+      "active": true,
+      "featured": true,
+      "createdAt": "2024-11-01T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "sku": "VDN001",
+      "name": "Áo polo phồng màu nâu",
+      "slug": "ao-polo-phong-mau-nau",
+      "description": "Áo polo chất liệu cotton pha polyester, thiết kế phồng thời trang",
+      "price": 580000,
+      "originalPrice": 780000,
+      "discount": 25,
+      "categoryId": 2,
+      "collectionIds": [1, 3],
+      "images": [
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/5a_1500x.jpg?v=1719651021",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/5b_1500x.jpg?v=1719651022",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/5d_1500x.jpg?v=1719651022"
+      ],
+      "variants": [
+        {
+          "id": 6,
+          "size": "S",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 10,
+          "sku": "VDN001-S-BLACK"
+        },
+        {
+          "id": 7,
+          "size": "M",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 20,
+          "sku": "VDN001-M-BLACK"
+        },
+        {
+          "id": 8,
+          "size": "L",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 15,
+          "sku": "VDN001-L-BLACK"
+        },
+        {
+          "id": 9,
+          "size": "M",
+          "color": "Đỏ đô",
+          "colorCode": "#DC2626",
+          "stock": 12,
+          "sku": "VDN001-M-RED"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 95,
+      "tags": ["mới", "thanh lịch"],
+      "active": true,
+      "featured": true,
+      "createdAt": "2024-11-05T14:00:00Z"
+    },
+    {
+      "id": 3,
+      "sku": "TX001",
+      "name": "Áo thun cơ bản có khẩu hiệu",
+      "slug": "ao-thun-co-ban-co-khau-hieu",
+      "description": "Áo thun cotton mềm mại, in khẩu hiệu thời trang",
+      "price": 1200000,
+      "originalPrice": null,
+      "discount": null,
+      "categoryId": 5,
+      "collectionIds": [1],
+      "images": [
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/6a_1500x.jpg?v=1719650885",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/6b_1500x.jpg?v=1719650885",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/6c_1500x.jpg?v=1719650885",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/6d_1500x.jpg?v=1719650885"
+      ],
+      "variants": [
+        {
+          "id": 10,
+          "size": "S",
+          "color": "Nâu",
+          "colorCode": "#92400E",
+          "stock": 8,
+          "sku": "TX001-S-BROWN"
+        },
+        {
+          "id": 11,
+          "size": "M",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 12,
+          "sku": "TX001-M-BLACK"
+        }
+      ],
+      "rating": 4.7,
+      "reviews": 64,
+      "tags": ["cao cấp", "da thật"],
+      "active": true,
+      "featured": true,
+      "createdAt": "2024-10-20T09:00:00Z"
+    },
+    {
+      "id": 4,
+      "sku": "GTT001",
+      "name": "Giày thể thao nam",
+      "slug": "giay-the-thao-nam",
+      "description": "Giày thể thao êm ái, phù hợp chơi thể thao và đi bộ",
+      "price": 890000,
+      "originalPrice": 1200000,
+      "discount": 26,
+      "categoryId": 4,
+      "collectionIds": [4],
+      "images": [
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/7a_1500x.jpg?v=1719650692",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/7b_1500x.jpg?v=1719650691",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/7c_1500x.jpg?v=1719650691"
+      ],
+      "variants": [
+        {
+          "id": 12,
+          "size": "S",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 10,
+          "sku": "GTT001-S-WHITE"
+        },
+        {
+          "id": 13,
+          "size": "M",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 15,
+          "sku": "GTT001-M-WHITE"
+        },
+        {
+          "id": 14,
+          "size": "L",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 20,
+          "sku": "GTT001-L-WHITE"
+        },
+        {
+          "id": 15,
+          "size": "XL",
+          "color": "Trắng",
+          "colorCode": "#FFFFFF",
+          "stock": 18,
+          "sku": "GTT001-XL-WHITE"
+        },
+        {
+          "id": 16,
+          "size": "M",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 12,
+          "sku": "GTT001-M-BLACK"
+        },
+        {
+          "id": 17,
+          "size": "L",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 14,
+          "sku": "GTT001-L-BLACK"
+        }
+      ],
+      "rating": 4.6,
+      "reviews": 156,
+      "tags": ["bán chạy", "thể thao"],
+      "active": true,
+      "featured": true,
+      "createdAt": "2024-10-15T11:00:00Z"
+    },
+    {
+      "id": 5,
+      "sku": "DH001",
+      "name": "Áo khoác cardigan cotton có khóa kéo",
+      "slug": "ao-khoac-cardigan-cotton-co-khoa-keo",
+      "description": "Áo khoác cardigan cotton mềm mại, có khóa kéo tiện lợi",
+      "price": 2500000,
+      "originalPrice": null,
+      "discount": null,
+      "categoryId": 3,
+      "collectionIds": [1],
+      "images": [
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/18a_a5b5adea-c4ad-4e23-ba82-ed1e4dcc80d1_1500x.jpg?v=1729225807",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/18b_7e23895f-d7bd-4466-92ea-2e295a13a125_1500x.jpg?v=1729225807",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/18c_1f1dfc38-bdd1-41c7-a427-dc6b910fdfbc_1500x.jpg?v=1729225807",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/18e_e5a036f4-7128-4831-bc63-3098bd7f9d43_1500x.jpg?v=1729225807"
+      ],
+      "variants": [
+        {
+          "id": 18,
+          "size": "S",
+          "color": "Bạc",
+          "colorCode": "#D1D5DB",
+          "stock": 5,
+          "sku": "DH001-S-SILVER"
+        },
+        {
+          "id": 19,
+          "size": "M",
+          "color": "Vàng",
+          "colorCode": "#FCD34D",
+          "stock": 3,
+          "sku": "DH001-M-GOLD"
+        },
+        {
+          "id": 20,
+          "size": "L",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 7,
+          "sku": "DH001-L-BLACK"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 87,
+      "tags": ["cao cấp", "mới"],
+      "active": true,
+      "featured": true,
+      "createdAt": "2024-11-10T15:00:00Z"
+    },
+    {
+      "id": 6,
+      "sku": "QJ001",
+      "name": "Mũ len cơ bản",
+      "slug": "mu-len-co-ban",
+      "description": "Mũ len cơ bản ấm áp, phù hợp cho mùa đông",
+      "price": 520000,
+      "originalPrice": 720000,
+      "discount": 28,
+      "categoryId": 3,
+      "collectionIds": [1, 4],
+      "images": [
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/14a_1500x.jpg?v=1719647813",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/14b_1500x.jpg?v=1719647814",
+        "https://utero-ninethemes.myshopify.com/cdn/shop/files/14c_1500x.jpg?v=1719647813"
+      ],
+      "variants": [
+        {
+          "id": 21,
+          "size": "S",
+          "color": "Xanh đậm",
+          "colorCode": "#1E3A8A",
+          "stock": 10,
+          "sku": "QJ001-S-DARK"
+        },
+        {
+          "id": 22,
+          "size": "M",
+          "color": "Xanh đậm",
+          "colorCode": "#1E3A8A",
+          "stock": 18,
+          "sku": "QJ001-M-DARK"
+        },
+        {
+          "id": 23,
+          "size": "L",
+          "color": "Xanh đậm",
+          "colorCode": "#1E3A8A",
+          "stock": 15,
+          "sku": "QJ001-L-DARK"
+        },
+        {
+          "id": 24,
+          "size": "XL",
+          "color": "Xanh đậm",
+          "colorCode": "#1E3A8A",
+          "stock": 20,
+          "sku": "QJ001-XL-DARK"
+        },
+        {
+          "id": 25,
+          "size": "M",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 12,
+          "sku": "QJ001-M-BLACK"
+        },
+        {
+          "id": 26,
+          "size": "L",
+          "color": "Đen",
+          "colorCode": "#000000",
+          "stock": 14,
+          "sku": "QJ001-L-BLACK"
+        }
+      ],
+      "rating": 4.4,
+      "reviews": 112,
+      "tags": ["bán chạy"],
+      "active": true,
+      "featured": false,
+      "createdAt": "2024-10-25T10:00:00Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "email": "nguyen.van.a@example.com",
+      "firstName": "Văn A",
+      "lastName": "Nguyễn",
+      "phone": "0901234567",
+      "gender": "male",
+      "dateOfBirth": "1990-05-15",
+      "addresses": [
+        {
+          "id": 1,
+          "fullName": "Nguyễn Văn A",
+          "phone": "0901234567",
+          "street": "123 Đường Lê Lợi",
+          "ward": "Phường Bến Thành",
+          "district": "Quận 1",
+          "city": "TP. Hồ Chí Minh",
+          "isDefault": true
+        }
+      ],
+      "totalOrders": 5,
+      "totalSpent": 3250000,
+      "createdAt": "2024-08-15T09:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "email": "tran.thi.b@example.com",
+      "firstName": "Thị B",
+      "lastName": "Trần",
+      "phone": "0912345678",
+      "gender": "female",
+      "dateOfBirth": "1995-08-20",
+      "addresses": [
+        {
+          "id": 2,
+          "fullName": "Trần Thị B",
+          "phone": "0912345678",
+          "street": "456 Đường Nguyễn Huệ",
+          "ward": "Phường Bến Nghé",
+          "district": "Quận 1",
+          "city": "TP. Hồ Chí Minh",
+          "isDefault": true
+        }
+      ],
+      "totalOrders": 8,
+      "totalSpent": 5890000,
+      "createdAt": "2024-07-10T14:30:00Z",
+      "status": "active"
+    },
+    {
+      "id": 3,
+      "email": "le.van.c@example.com",
+      "firstName": "Văn C",
+      "lastName": "Lê",
+      "phone": "0923456789",
+      "gender": "male",
+      "dateOfBirth": "1988-12-03",
+      "addresses": [
+        {
+          "id": 3,
+          "fullName": "Lê Văn C",
+          "phone": "0923456789",
+          "street": "789 Đường Trần Hưng Đạo",
+          "ward": "Phường Cô Giang",
+          "district": "Quận 1",
+          "city": "TP. Hồ Chí Minh",
+          "isDefault": true
+        },
+        {
+          "id": 4,
+          "fullName": "Lê Văn C",
+          "phone": "0923456789",
+          "street": "321 Đường Phan Văn Trị",
+          "ward": "Phường 11",
+          "district": "Quận Bình Thạnh",
+          "city": "TP. Hồ Chí Minh",
+          "isDefault": false
+        }
+      ],
+      "totalOrders": 12,
+      "totalSpent": 8450000,
+      "createdAt": "2024-06-05T11:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": 4,
+      "email": "pham.thi.d@example.com",
+      "firstName": "Thị D",
+      "lastName": "Phạm",
+      "phone": "0934567890",
+      "gender": "female",
+      "dateOfBirth": "1992-03-25",
+      "addresses": [
+        {
+          "id": 5,
+          "fullName": "Phạm Thị D",
+          "phone": "0934567890",
+          "street": "555 Đường Võ Văn Tần",
+          "ward": "Phường 5",
+          "district": "Quận 3",
+          "city": "TP. Hồ Chí Minh",
+          "isDefault": true
+        }
+      ],
+      "totalOrders": 3,
+      "totalSpent": 1950000,
+      "createdAt": "2024-09-20T16:45:00Z",
+      "status": "active"
+    }
+  ],
+  "orders": [
+    {
+      "id": 1001,
+      "orderNumber": "ORD-20241101-001",
+      "customerId": 1,
+      "customerInfo": {
+        "email": "nguyen.van.a@example.com",
+        "fullName": "Nguyễn Văn A",
+        "phone": "0901234567"
+      },
+      "items": [
+        {
+          "id": 1,
+          "productId": 1,
+          "productName": "Áo sơ mi nam cao cấp",
+          "sku": "ASM001-M-WHITE",
+          "variantId": 2,
+          "size": "M",
+          "color": "Trắng",
+          "quantity": 2,
+          "price": 450000,
+          "subtotal": 900000
+        },
+        {
+          "id": 2,
+          "productId": 3,
+          "productName": "Túi xách da cao cấp",
+          "sku": "TX001-OS-BLACK",
+          "variantId": 11,
+          "size": "Onesize",
+          "color": "Đen",
+          "quantity": 1,
+          "price": 1200000,
+          "subtotal": 1200000
+        }
+      ],
+      "shippingAddress": {
+        "fullName": "Nguyễn Văn A",
+        "phone": "0901234567",
+        "street": "123 Đường Lê Lợi",
+        "ward": "Phường Bến Thành",
+        "district": "Quận 1",
+        "city": "TP. Hồ Chí Minh"
+      },
+      "subtotal": 2100000,
+      "shippingFee": 30000,
+      "discount": 0,
+      "total": 2130000,
+      "paymentMethod": "cod",
+      "paymentStatus": "paid",
+      "shippingMethod": "standard",
+      "orderStatus": "delivered",
+      "note": "",
+      "createdAt": "2024-11-01T10:30:00Z",
+      "updatedAt": "2024-11-05T14:20:00Z",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "timestamp": "2024-11-01T10:30:00Z",
+          "note": "Đơn hàng đã được tạo"
+        },
+        {
+          "status": "confirmed",
+          "timestamp": "2024-11-01T15:00:00Z",
+          "note": "Đơn hàng đã được xác nhận"
+        },
+        {
+          "status": "processing",
+          "timestamp": "2024-11-02T09:00:00Z",
+          "note": "Đang chuẩn bị hàng"
+        },
+        {
+          "status": "shipping",
+          "timestamp": "2024-11-03T08:30:00Z",
+          "note": "Đơn hàng đang được giao"
+        },
+        {
+          "status": "delivered",
+          "timestamp": "2024-11-05T14:20:00Z",
+          "note": "Giao hàng thành công"
+        }
+      ]
+    },
+    {
+      "id": 1002,
+      "orderNumber": "ORD-20241103-002",
+      "customerId": 2,
+      "customerInfo": {
+        "email": "tran.thi.b@example.com",
+        "fullName": "Trần Thị B",
+        "phone": "0912345678"
+      },
+      "items": [
+        {
+          "id": 3,
+          "productId": 2,
+          "productName": "Váy đầm nữ thanh lịch",
+          "sku": "VDN001-M-BLACK",
+          "variantId": 7,
+          "size": "M",
+          "color": "Đen",
+          "quantity": 1,
+          "price": 580000,
+          "subtotal": 580000
+        },
+        {
+          "id": 4,
+          "productId": 5,
+          "productName": "Đồng hồ thời trang",
+          "sku": "DH001-S-SILVER",
+          "variantId": 18,
+          "size": "S",
+          "color": "Bạc",
+          "quantity": 1,
+          "price": 2500000,
+          "subtotal": 2500000
+        }
+      ],
+      "shippingAddress": {
+        "fullName": "Trần Thị B",
+        "phone": "0912345678",
+        "street": "456 Đường Nguyễn Huệ",
+        "ward": "Phường Bến Nghé",
+        "district": "Quận 1",
+        "city": "TP. Hồ Chí Minh"
+      },
+      "subtotal": 3080000,
+      "shippingFee": 0,
+      "discount": 150000,
+      "total": 2930000,
+      "paymentMethod": "bank_transfer",
+      "paymentStatus": "paid",
+      "shippingMethod": "express",
+      "orderStatus": "shipping",
+      "note": "Giao hàng giờ hành chính",
+      "createdAt": "2024-11-03T14:20:00Z",
+      "updatedAt": "2024-11-08T10:15:00Z",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "timestamp": "2024-11-03T14:20:00Z",
+          "note": "Đơn hàng đã được tạo"
+        },
+        {
+          "status": "confirmed",
+          "timestamp": "2024-11-03T16:30:00Z",
+          "note": "Đã xác nhận thanh toán"
+        },
+        {
+          "status": "processing",
+          "timestamp": "2024-11-04T09:00:00Z",
+          "note": "Đang đóng gói"
+        },
+        {
+          "status": "shipping",
+          "timestamp": "2024-11-08T10:15:00Z",
+          "note": "Đang giao hàng nhanh"
+        }
+      ]
+    },
+    {
+      "id": 1003,
+      "orderNumber": "ORD-20241105-003",
+      "customerId": 3,
+      "customerInfo": {
+        "email": "le.van.c@example.com",
+        "fullName": "Lê Văn C",
+        "phone": "0923456789"
+      },
+      "items": [
+        {
+          "id": 5,
+          "productId": 4,
+          "productName": "Giày thể thao nam",
+          "sku": "GTT001-L-WHITE",
+          "variantId": 14,
+          "size": "L",
+          "color": "Trắng",
+          "quantity": 2,
+          "price": 890000,
+          "subtotal": 1780000
+        },
+        {
+          "id": 6,
+          "productId": 6,
+          "productName": "Quần jeans nam",
+          "sku": "QJ001-L-DARK",
+          "variantId": 23,
+          "size": "L",
+          "color": "Xanh đậm",
+          "quantity": 1,
+          "price": 520000,
+          "subtotal": 520000
+        }
+      ],
+      "shippingAddress": {
+        "fullName": "Lê Văn C",
+        "phone": "0923456789",
+        "street": "789 Đường Trần Hưng Đạo",
+        "ward": "Phường Cô Giang",
+        "district": "Quận 1",
+        "city": "TP. Hồ Chí Minh"
+      },
+      "subtotal": 2300000,
+      "shippingFee": 30000,
+      "discount": 0,
+      "total": 2330000,
+      "paymentMethod": "momo",
+      "paymentStatus": "paid",
+      "shippingMethod": "standard",
+      "orderStatus": "processing",
+      "note": "",
+      "createdAt": "2024-11-05T09:15:00Z",
+      "updatedAt": "2024-11-06T11:00:00Z",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "timestamp": "2024-11-05T09:15:00Z",
+          "note": "Đơn hàng đã được tạo"
+        },
+        {
+          "status": "confirmed",
+          "timestamp": "2024-11-05T09:18:00Z",
+          "note": "Đã thanh toán qua MoMo"
+        },
+        {
+          "status": "processing",
+          "timestamp": "2024-11-06T11:00:00Z",
+          "note": "Đang chuẩn bị hàng"
+        }
+      ]
+    },
+    {
+      "id": 1004,
+      "orderNumber": "ORD-20241108-004",
+      "customerId": 4,
+      "customerInfo": {
+        "email": "pham.thi.d@example.com",
+        "fullName": "Phạm Thị D",
+        "phone": "0934567890"
+      },
+      "items": [
+        {
+          "id": 7,
+          "productId": 1,
+          "productName": "Áo sơ mi nam cao cấp",
+          "sku": "ASM001-M-NAVY",
+          "variantId": 4,
+          "size": "M",
+          "color": "Xanh Navy",
+          "quantity": 1,
+          "price": 450000,
+          "subtotal": 450000
+        }
+      ],
+      "shippingAddress": {
+        "fullName": "Phạm Thị D",
+        "phone": "0934567890",
+        "street": "555 Đường Võ Văn Tần",
+        "ward": "Phường 5",
+        "district": "Quận 3",
+        "city": "TP. Hồ Chí Minh"
+      },
+      "subtotal": 450000,
+      "shippingFee": 30000,
+      "discount": 0,
+      "total": 480000,
+      "paymentMethod": "vnpay",
+      "paymentStatus": "pending",
+      "shippingMethod": "standard",
+      "orderStatus": "pending",
+      "note": "",
+      "createdAt": "2024-11-08T16:30:00Z",
+      "updatedAt": "2024-11-08T16:30:00Z",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "timestamp": "2024-11-08T16:30:00Z",
+          "note": "Đơn hàng đã được tạo, chờ thanh toán"
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "email": "admin@store.com",
+      "username": "admin",
+      "firstName": "Admin",
+      "lastName": "Store",
+      "role": "admin",
+      "permissions": ["all"],
+      "avatar": "/avatars/admin.jpg",
+      "phone": "0909999999",
+      "active": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "lastLogin": "2024-11-11T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "email": "manager@store.com",
+      "username": "manager",
+      "firstName": "Quản lý",
+      "lastName": "Nguyễn",
+      "role": "manager",
+      "permissions": ["orders", "products", "customers", "reports"],
+      "avatar": "/avatars/manager.jpg",
+      "phone": "0908888888",
+      "active": true,
+      "createdAt": "2024-02-01T00:00:00Z",
+      "lastLogin": "2024-11-10T09:30:00Z"
+    },
+    {
+      "id": 3,
+      "email": "staff@store.com",
+      "username": "staff",
+      "firstName": "Nhân viên",
+      "lastName": "Trần",
+      "role": "staff",
+      "permissions": ["orders", "customers"],
+      "avatar": "/avatars/staff.jpg",
+      "phone": "0907777777",
+      "active": true,
+      "createdAt": "2024-03-01T00:00:00Z",
+      "lastLogin": "2024-11-11T07:45:00Z"
+    }
+  ],
+  "payments": [
+    {
+      "id": 1,
+      "orderId": 1001,
+      "orderNumber": "ORD-20241101-001",
+      "transactionId": "PAY-COD-20241105-001",
+      "method": "cod",
+      "amount": 2130000,
+      "status": "completed",
+      "paidAt": "2024-11-05T14:20:00Z",
+      "createdAt": "2024-11-01T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "orderId": 1002,
+      "orderNumber": "ORD-20241103-002",
+      "transactionId": "BANK-20241103-145632",
+      "method": "bank_transfer",
+      "bankCode": "VCB",
+      "bankName": "Vietcombank",
+      "accountNumber": "1234567890",
+      "amount": 2930000,
+      "status": "completed",
+      "paidAt": "2024-11-03T16:25:00Z",
+      "createdAt": "2024-11-03T14:20:00Z"
+    },
+    {
+      "id": 3,
+      "orderId": 1003,
+      "orderNumber": "ORD-20241105-003",
+      "transactionId": "MOMO-20241105-091756",
+      "method": "momo",
+      "amount": 2330000,
+      "status": "completed",
+      "paidAt": "2024-11-05T09:17:56Z",
+      "createdAt": "2024-11-05T09:15:00Z"
+    },
+    {
+      "id": 4,
+      "orderId": 1004,
+      "orderNumber": "ORD-20241108-004",
+      "transactionId": "VNPAY-20241108-163045",
+      "method": "vnpay",
+      "amount": 480000,
+      "status": "pending",
+      "paidAt": null,
+      "createdAt": "2024-11-08T16:30:00Z"
+    }
+  ],
+  "shippingMethods": [
+    {
+      "id": 1,
+      "name": "Giao hàng tiêu chuẩn",
+      "code": "standard",
+      "description": "Giao hàng trong 3-5 ngày",
+      "fee": 30000,
+      "estimatedDays": "3-5",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Giao hàng nhanh",
+      "code": "express",
+      "description": "Giao hàng trong 1-2 ngày",
+      "fee": 50000,
+      "estimatedDays": "1-2",
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "Miễn phí vận chuyển",
+      "code": "free",
+      "description": "Miễn phí cho đơn hàng trên 500.000đ",
+      "fee": 0,
+      "estimatedDays": "3-5",
+      "minimumOrder": 500000,
+      "active": true
+    }
+  ],
+  "paymentMethods": [
+    {
+      "id": 1,
+      "name": "Thanh toán khi nhận hàng (COD)",
+      "code": "cod",
+      "icon": "/icons/cod.svg",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Chuyển khoản ngân hàng",
+      "code": "bank_transfer",
+      "icon": "/icons/bank.svg",
+      "active": true,
+      "bankInfo": {
+        "bankName": "Vietcombank",
+        "bankBranch": "Chi nhánh TP.HCM",
+        "accountNumber": "1234567890",
+        "accountName": "CÔNG TY FASHION STORE"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Ví MoMo",
+      "code": "momo",
+      "icon": "/icons/momo.svg",
+      "active": true
+    },
+    {
+      "id": 4,
+      "name": "VNPAY",
+      "code": "vnpay",
+      "icon": "/icons/vnpay.svg",
+      "active": true
+    },
+    {
+      "id": 5,
+      "name": "ZaloPay",
+      "code": "zalopay",
+      "icon": "/icons/zalopay.svg",
+      "active": true
+    }
+  ],
+  "vouchers": [
+    {
+      "id": 1,
+      "code": "WELCOME2024",
+      "name": "Chào mừng khách hàng mới",
+      "description": "Giảm 10% cho đơn hàng đầu tiên",
+      "type": "percentage",
+      "value": 10,
+      "maxDiscount": 100000,
+      "minOrder": 300000,
+      "usageLimit": 1000,
+      "usedCount": 234,
+      "startDate": "2024-01-01T00:00:00Z",
+      "endDate": "2024-12-31T23:59:59Z",
+      "active": true
+    },
+    {
+      "id": 2,
+      "code": "FREESHIP",
+      "name": "Miễn phí vận chuyển",
+      "description": "Miễn phí ship cho đơn hàng trên 500k",
+      "type": "shipping",
+      "value": 100,
+      "maxDiscount": 50000,
+      "minOrder": 500000,
+      "usageLimit": null,
+      "usedCount": 567,
+      "startDate": "2024-01-01T00:00:00Z",
+      "endDate": null,
+      "active": true
+    },
+    {
+      "id": 3,
+      "code": "SALE50K",
+      "name": "Giảm 50K",
+      "description": "Giảm 50K cho đơn hàng từ 800K",
+      "type": "fixed",
+      "value": 50000,
+      "maxDiscount": 50000,
+      "minOrder": 800000,
+      "usageLimit": 500,
+      "usedCount": 156,
+      "startDate": "2024-11-01T00:00:00Z",
+      "endDate": "2024-11-30T23:59:59Z",
+      "active": true
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "productId": 1,
+      "customerId": 1,
+      "customerName": "Nguyễn Văn A",
+      "orderId": 1001,
+      "rating": 5,
+      "title": "Sản phẩm rất tốt",
+      "comment": "Áo sơ mi chất lượng tuyệt vời, vải mát, mặc rất thoải mái. Sẽ ủng hộ shop lần sau.",
+      "images": ["/reviews/review-1-1.jpg", "/reviews/review-1-2.jpg"],
+      "helpful": 12,
+      "verified": true,
+      "status": "approved",
+      "createdAt": "2024-11-06T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "productId": 2,
+      "customerId": 2,
+      "customerName": "Trần Thị B",
+      "orderId": 1002,
+      "rating": 5,
+      "title": "Đẹp quá",
+      "comment": "Váy đầm rất đẹp, form chuẩn, chất liệu tốt. Mình rất hài lòng!",
+      "images": ["/reviews/review-2-1.jpg"],
+      "helpful": 8,
+      "verified": true,
+      "status": "approved",
+      "createdAt": "2024-11-09T15:30:00Z"
+    },
+    {
+      "id": 3,
+      "productId": 4,
+      "customerId": 3,
+      "customerName": "Lê Văn C",
+      "orderId": 1003,
+      "rating": 4,
+      "title": "Giày tốt",
+      "comment": "Giày đẹp, đi êm chân. Tuy nhiên hơi nhỏ một chút so với size thông thường.",
+      "images": [],
+      "helpful": 5,
+      "verified": true,
+      "status": "approved",
+      "createdAt": "2024-11-07T14:20:00Z"
+    }
+  ],
+  "settings": {
+    "store": {
+      "name": "Fashion Store",
+      "description": "Thời trang cao cấp, phong cách hiện đại",
+      "logo": "/logo.png",
+      "favicon": "/favicon.ico",
+      "email": "contact@fashionstore.com",
+      "phone": "1900xxxx",
+      "address": "123 Đường ABC, Quận 1, TP.HCM",
+      "workingHours": "8:00 - 22:00 (Thứ 2 - CN)",
+      "socialMedia": {
+        "facebook": "https://facebook.com/fashionstore",
+        "instagram": "https://instagram.com/fashionstore",
+        "youtube": "https://youtube.com/@fashionstore",
+        "tiktok": "https://tiktok.com/@fashionstore"
+      }
+    },
+    "seo": {
+      "title": "Fashion Store - Thời trang cao cấp",
+      "description": "Cửa hàng thời trang trực tuyến với đa dạng sản phẩm chất lượng",
+      "keywords": "thời trang, quần áo, giày dép, túi xách, phụ kiện"
+    },
+    "shipping": {
+      "freeShippingThreshold": 500000,
+      "standardFee": 30000,
+      "expressFee": 50000
+    },
+    "order": {
+      "autoConfirmMinutes": 30,
+      "cancelTimeLimit": 24,
+      "returnDays": 30
+    }
+  }
+}

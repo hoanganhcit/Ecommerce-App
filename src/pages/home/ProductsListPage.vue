@@ -1,43 +1,96 @@
 <template>
   <q-page class="py-20">
-    <div class="mx-auto px-8 py-8">
-      <!-- Categories Tabs -->
-      <div class="mb-8">
-        <q-tabs
-          v-model="selectedCategory"
-          dense
-          class="text-grey-8"
-          active-color="gray-900"
-          indicator-color="gray-900"
-          align="center"
-          narrow-indicator
-        >
-          <q-tab
-            v-for="category in categories"
-            :key="category.id"
-            :name="category.id"
-            :label="category.name"
-            class="text-base font-medium"
-          />
-        </q-tabs>
-      </div>
+    <div class="mx-auto px-4 sm:px-8 py-8">
+      <!-- 2 Column Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Sidebar - Filters -->
+        <ProductFilter
+          :categories="categories"
+          v-model:selectedCategory="selectedCategory"
+          v-model:priceRange="priceRange"
+          :minPrice="minPrice"
+          :maxPrice="maxPrice"
+          :selectedSizes="selectedSizes"
+          :selectedColors="selectedColors"
+          :selectedCollections="selectedCollections"
+          :availableSizes="availableSizes"
+          :availableColors="availableColors"
+          :collections="collections"
+          :formatPrice="formatPrice"
+          @toggle-size="toggleSize"
+          @toggle-color="toggleColor"
+          @toggle-collection="toggleCollection"
+          @clear-filters="clearFilters"
+        />
 
-      <!-- Products Grid -->
-      <div
-        v-if="loading && currentProducts.length === 0"
-        class="flex justify-center items-center py-20"
-      >
-        <q-spinner color="gray-900" size="50px" />
-      </div>
+        <!-- Right Content - Products -->
+        <main class="lg:col-span-9 space-y-4">
+          <!-- Active Filters Summary -->
+          <div v-if="hasActiveFilters" class="bg-gray-50 rounded-lg p-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm text-gray-600 font-medium">Đang lọc:</span>
+              <q-chip
+                v-for="size in selectedSizes"
+                :key="`size-${size}`"
+                removable
+                color="gray-900"
+                text-color="white"
+                size="sm"
+                @remove="toggleSize(size)"
+              >
+                Size: {{ size }}
+              </q-chip>
+              <q-chip
+                v-for="color in selectedColors"
+                :key="`color-${color}`"
+                removable
+                color="gray-900"
+                text-color="white"
+                size="sm"
+                @remove="toggleColor(color)"
+              >
+                Màu: {{ color }}
+              </q-chip>
+              <q-chip
+                v-for="collectionId in selectedCollections"
+                :key="`collection-${collectionId}`"
+                removable
+                color="gray-900"
+                text-color="white"
+                size="sm"
+                @remove="removeCollection(collectionId)"
+              >
+                {{ getCollectionName(collectionId) }}
+              </q-chip>
+              <q-chip
+                v-if="priceRange.min !== minPrice || priceRange.max !== maxPrice"
+                removable
+                color="gray-900"
+                text-color="white"
+                size="sm"
+                @remove="resetPriceRange"
+              >
+                {{ formatPrice(priceRange.min) }} - {{ formatPrice(priceRange.max) }}
+              </q-chip>
+            </div>
+          </div>
 
-      <div v-else>
-        <q-tab-panels v-model="selectedCategory" animated>
-          <q-tab-panel
-            v-for="category in categories"
-            :key="category.id"
-            :name="category.id"
-            class="p-0"
+          <!-- Result Count -->
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-600">
+              Tìm thấy <strong class="text-gray-900">{{ filteredProducts.length }}</strong> sản phẩm
+            </div>
+          </div>
+
+          <!-- Products Grid -->
+          <div
+            v-if="loading && currentProducts.length === 0"
+            class="flex justify-center items-center py-20"
           >
+            <q-spinner color="gray-900" size="50px" />
+          </div>
+
+          <div v-else>
             <!-- Products List Component -->
             <ProductsList
               :products="currentProducts"
@@ -49,7 +102,7 @@
             <!-- No Products Message -->
             <div v-if="currentProducts.length === 0 && !loading" class="text-center py-20">
               <q-icon name="inventory_2" size="80px" color="grey-5" />
-              <p class="text-gray-500 mt-4 text-lg">Không có sản phẩm nào trong danh mục này</p>
+              <p class="text-gray-500 mt-4 text-lg">Không có sản phẩm nào phù hợp với bộ lọc</p>
             </div>
 
             <!-- Load More Button -->
@@ -74,10 +127,13 @@
             >
               <p>Đã hiển thị tất cả sản phẩm</p>
             </div>
-          </q-tab-panel>
-        </q-tab-panels>
+          </div>
+        </main>
       </div>
     </div>
+
+    <!-- Cart Drawer -->
+    <CartDrawer />
   </q-page>
 </template>
 
@@ -85,11 +141,24 @@
 import { ref, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
+import ProductFilter from 'src/components/home/ProductFilter.vue'
 import ProductsList from 'src/components/home/ProductsList.vue'
+import CartDrawer from 'src/components/home/CartDrawer.vue'
+import { useStoreData } from 'src/composables/useStoreData'
+import { useCartStore } from 'src/stores/useCartStore'
 
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
+const {
+  categories,
+  products,
+  collections: allCollections,
+  getCategoryBySlug,
+  formatPrice,
+} = useStoreData()
+
+const { addToCart: addToCartStore } = useCartStore()
 
 // State
 const selectedCategory = ref(0)
@@ -97,286 +166,103 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const displayedCount = ref(12)
 
-// Categories
-const categories = ref([
-  { id: 0, name: 'Tất cả sản phẩm', slug: 'all' },
-  { id: 1, name: 'Thời trang Nam', slug: 'men' },
-  { id: 2, name: 'Thời trang Nữ', slug: 'women' },
-  { id: 3, name: 'Phụ kiện', slug: 'accessories' },
-  { id: 4, name: 'Giày dép', slug: 'shoes' },
-  { id: 5, name: 'Túi xách', slug: 'bags' },
-])
+// Filter states
+const priceRange = ref({ min: 0, max: 5000000 })
+const selectedSizes = ref([])
+const selectedColors = ref([])
+const selectedCollections = ref([])
 
-// Mock products data - Replace with API call
-const allProducts = ref([
-  {
-    id: 1,
-    name: 'Áo sơ mi nam cao cấp',
-    description: 'Áo sơ mi nam chất liệu cotton 100%, thoáng mát',
-    price: 450000,
-    originalPrice: 650000,
-    discount: 30,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 1, // Thời trang Nam
-    rating: 4.5,
-    reviews: 128,
-  },
-  {
-    id: 2,
-    name: 'Váy đầm nữ thanh lịch',
-    description: 'Váy đầm nữ thiết kế hiện đại, phù hợp đi làm',
-    price: 580000,
-    originalPrice: 780000,
-    discount: 25,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 2, // Thời trang Nữ
-    rating: 4.8,
-    reviews: 95,
-  },
-  {
-    id: 3,
-    name: 'Túi xách da cao cấp',
-    description: 'Túi xách da thật, thiết kế sang trọng',
-    price: 1200000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 5, // Túi xách
-    rating: 4.7,
-    reviews: 64,
-  },
-  {
-    id: 4,
-    name: 'Giày thể thao nam',
-    description: 'Giày thể thao êm ái, phù hợp chơi thể thao',
-    price: 890000,
-    originalPrice: 1200000,
-    discount: 26,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 4, // Giày dép
-    rating: 4.6,
-    reviews: 156,
-  },
-  {
-    id: 5,
-    name: 'Đồng hồ thời trang',
-    description: 'Đồng hồ thời trang cao cấp, chống nước',
-    price: 2500000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 3, // Phụ kiện
-    rating: 4.9,
-    reviews: 87,
-  },
-  {
-    id: 6,
-    name: 'Quần jeans nam',
-    description: 'Quần jeans nam co giãn, form dáng hiện đại',
-    price: 520000,
-    originalPrice: 720000,
-    discount: 28,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 1, // Thời trang Nam
-    rating: 4.4,
-    reviews: 112,
-  },
-  {
-    id: 7,
-    name: 'Áo thun nữ',
-    description: 'Áo thun nữ cotton cao cấp, nhiều màu sắc',
-    price: 280000,
-    originalPrice: 380000,
-    discount: 26,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 2, // Thời trang Nữ
-    rating: 4.3,
-    reviews: 203,
-  },
-  {
-    id: 8,
-    name: 'Kính mát thời trang',
-    description: 'Kính mát chống UV, thiết kế trendy',
-    price: 450000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 3, // Phụ kiện
-    rating: 4.5,
-    reviews: 73,
-  },
-  {
-    id: 9,
-    name: 'Giày cao gót nữ',
-    description: 'Giày cao gót nữ thanh lịch, êm chân',
-    price: 680000,
-    originalPrice: 890000,
-    discount: 24,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 4, // Giày dép
-    rating: 4.7,
-    reviews: 91,
-  },
-  {
-    id: 10,
-    name: 'Balo da cao cấp',
-    description: 'Balo da thật, nhiều ngăn tiện dụng',
-    price: 980000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 5, // Túi xách
-    rating: 4.8,
-    reviews: 58,
-  },
-  {
-    id: 11,
-    name: 'Áo khoác nam',
-    description: 'Áo khoác nam mùa đông, ấm áp',
-    price: 850000,
-    originalPrice: 1150000,
-    discount: 26,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 1, // Thời trang Nam
-    rating: 4.6,
-    reviews: 142,
-  },
-  {
-    id: 12,
-    name: 'Chân váy nữ',
-    description: 'Chân váy nữ công sở, dễ phối đồ',
-    price: 380000,
-    originalPrice: 480000,
-    discount: 21,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 2, // Thời trang Nữ
-    rating: 4.4,
-    reviews: 167,
-  },
-  {
-    id: 13,
-    name: 'Thắt lưng da nam',
-    description: 'Thắt lưng da thật, khóa kim loại cao cấp',
-    price: 420000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 3, // Phụ kiện
-    rating: 4.5,
-    reviews: 81,
-  },
-  {
-    id: 14,
-    name: 'Sandal nữ thời trang',
-    description: 'Sandal nữ êm chân, phù hợp mùa hè',
-    price: 320000,
-    originalPrice: 420000,
-    discount: 24,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 4, // Giày dép
-    rating: 4.3,
-    reviews: 124,
-  },
-  {
-    id: 15,
-    name: 'Clutch sang trọng',
-    description: 'Clutch dự tiệc, thiết kế sang trọng',
-    price: 560000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 5, // Túi xách
-    rating: 4.7,
-    reviews: 45,
-  },
-  {
-    id: 16,
-    name: 'Quần short nam',
-    description: 'Quần short nam thể thao, thoải mái',
-    price: 280000,
-    originalPrice: 380000,
-    discount: 26,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 1, // Thời trang Nam
-    rating: 4.4,
-    reviews: 198,
-  },
-  {
-    id: 17,
-    name: 'Blazer nữ công sở',
-    description: 'Blazer nữ thanh lịch, phù hợp công sở',
-    price: 720000,
-    originalPrice: 950000,
-    discount: 24,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 2, // Thời trang Nữ
-    rating: 4.8,
-    reviews: 76,
-  },
-  {
-    id: 18,
-    name: 'Nhẫn bạc cao cấp',
-    description: 'Nhẫn bạc 925, thiết kế tinh xảo',
-    price: 650000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 3, // Phụ kiện
-    rating: 4.9,
-    reviews: 52,
-  },
-  {
-    id: 19,
-    name: 'Giày boot nữ',
-    description: 'Giày boot nữ cổ cao, phong cách Hàn Quốc',
-    price: 890000,
-    originalPrice: 1190000,
-    discount: 25,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 4, // Giày dép
-    rating: 4.7,
-    reviews: 103,
-  },
-  {
-    id: 20,
-    name: 'Ví cầm tay nam',
-    description: 'Ví cầm tay nam da thật, nhiều ngăn',
-    price: 480000,
-    originalPrice: null,
-    discount: null,
-    image: '/product-1.png',
-    imageHover: '/product-2.png',
-    category: 5, // Túi xách
-    rating: 4.6,
-    reviews: 89,
-  },
-])
+// All products from composable
+const allProducts = products
+
+// Calculate min and max price from all products
+const minPrice = computed(() => {
+  const prices = allProducts.value.map((p) => p.price)
+  return Math.floor(Math.min(...prices) / 50000) * 50000
+})
+
+const maxPrice = computed(() => {
+  const prices = allProducts.value.map((p) => p.price)
+  return Math.ceil(Math.max(...prices) / 50000) * 50000
+})
+
+// Get all available sizes from products
+const availableSizes = computed(() => {
+  const sizes = new Set()
+  allProducts.value.forEach((product) => {
+    product.variants?.forEach((variant) => {
+      sizes.add(variant.size)
+    })
+  })
+  return Array.from(sizes)
+})
+
+// Get all available colors from products
+const availableColors = computed(() => {
+  const colorsMap = new Map()
+  allProducts.value.forEach((product) => {
+    product.variants?.forEach((variant) => {
+      if (!colorsMap.has(variant.color)) {
+        colorsMap.set(variant.color, {
+          name: variant.color,
+          value: variant.colorCode,
+        })
+      }
+    })
+  })
+  return Array.from(colorsMap.values())
+})
+
+// Collections for select
+const collections = computed(() => allCollections.value)
+
+// Check if any filter is active
+const hasActiveFilters = computed(() => {
+  return (
+    selectedSizes.value.length > 0 ||
+    selectedColors.value.length > 0 ||
+    selectedCollections.value.length > 0 ||
+    priceRange.value.min !== minPrice.value ||
+    priceRange.value.max !== maxPrice.value
+  )
+})
 
 // Computed
 const filteredProducts = computed(() => {
-  if (selectedCategory.value === 0) {
-    return allProducts.value
+  let products = allProducts.value
+
+  // Filter by category
+  if (selectedCategory.value !== 0) {
+    products = products.filter((product) => product.category === selectedCategory.value)
   }
-  return allProducts.value.filter((product) => product.category === selectedCategory.value)
+
+  // Filter by price range
+  products = products.filter(
+    (product) => product.price >= priceRange.value.min && product.price <= priceRange.value.max,
+  )
+
+  // Filter by size
+  if (selectedSizes.value.length > 0) {
+    products = products.filter((product) =>
+      product.variants?.some((variant) => selectedSizes.value.includes(variant.size)),
+    )
+  }
+
+  // Filter by color
+  if (selectedColors.value.length > 0) {
+    products = products.filter((product) =>
+      product.variants?.some((variant) => selectedColors.value.includes(variant.color)),
+    )
+  }
+
+  // Filter by collection
+  if (selectedCollections.value.length > 0) {
+    products = products.filter((product) =>
+      product.collectionIds?.some((id) => selectedCollections.value.includes(id)),
+    )
+  }
+
+  return products
 })
 
 const currentProducts = computed(() => {
@@ -388,6 +274,62 @@ const hasMore = computed(() => {
 })
 
 // Methods
+const toggleSize = (size) => {
+  const index = selectedSizes.value.indexOf(size)
+  if (index > -1) {
+    selectedSizes.value.splice(index, 1)
+  } else {
+    selectedSizes.value.push(size)
+  }
+  displayedCount.value = 12
+}
+
+const toggleColor = (color) => {
+  const index = selectedColors.value.indexOf(color)
+  if (index > -1) {
+    selectedColors.value.splice(index, 1)
+  } else {
+    selectedColors.value.push(color)
+  }
+  displayedCount.value = 12
+}
+
+const toggleCollection = (collectionId) => {
+  const index = selectedCollections.value.indexOf(collectionId)
+  if (index > -1) {
+    selectedCollections.value.splice(index, 1)
+  } else {
+    selectedCollections.value.push(collectionId)
+  }
+  displayedCount.value = 12
+}
+
+const removeCollection = (collectionId) => {
+  const index = selectedCollections.value.indexOf(collectionId)
+  if (index > -1) {
+    selectedCollections.value.splice(index, 1)
+  }
+  displayedCount.value = 12
+}
+
+const resetPriceRange = () => {
+  priceRange.value = { min: minPrice.value, max: maxPrice.value }
+  displayedCount.value = 12
+}
+
+const clearFilters = () => {
+  selectedSizes.value = []
+  selectedColors.value = []
+  selectedCollections.value = []
+  priceRange.value = { min: minPrice.value, max: maxPrice.value }
+  displayedCount.value = 12
+}
+
+const getCollectionName = (collectionId) => {
+  const collection = collections.value.find((c) => c.id === collectionId)
+  return collection ? collection.name : ''
+}
+
 const createSlug = (text) => {
   return text
     .toLowerCase()
@@ -415,6 +357,9 @@ const loadMore = () => {
 }
 
 const addToCart = (product) => {
+  // Add to cart store
+  addToCartStore(product)
+
   // Show success notification
   $q.notify({
     message: `Đã thêm "${product.name}" vào giỏ hàng`,
@@ -431,11 +376,6 @@ const toggleFavorite = (product) => {
     icon: 'favorite',
     position: 'top-right',
   })
-}
-
-// Helper function to find category by slug
-const getCategoryBySlug = (slug) => {
-  return categories.value.find((cat) => cat.slug === slug)
 }
 
 // Helper function to get slug by id
@@ -458,11 +398,27 @@ watch(
   { immediate: true },
 )
 
-// Watch category changes to reset displayed count
+// Watch category changes to reset displayed count and filters
 watch(selectedCategory, () => {
   displayedCount.value = 12
   window.scrollTo({ top: 0, behavior: 'smooth' })
 })
+
+// Watch price changes to reset displayed count
+watch([priceRange, selectedSizes, selectedColors, selectedCollections], () => {
+  displayedCount.value = 12
+})
+
+// Initialize price range
+watch(
+  [minPrice, maxPrice],
+  () => {
+    if (priceRange.value.min === 0 && priceRange.value.max === 5000000) {
+      priceRange.value = { min: minPrice.value, max: maxPrice.value }
+    }
+  },
+  { immediate: true },
+)
 
 // Watch category tab change to update URL
 watch(selectedCategory, (newCategoryId) => {

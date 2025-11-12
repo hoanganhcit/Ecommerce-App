@@ -425,7 +425,7 @@ const onSubmit = async () => {
       })
 
       // Redirect to dashboard
-      router.push('/dashboard')
+      router.push('/admin/dashboard')
     } else {
       throw new Error('Invalid credentials')
     }

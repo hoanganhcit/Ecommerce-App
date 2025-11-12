@@ -1,10 +1,10 @@
 <template>
   <!-- Products Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
     <div v-for="product in products" :key="product.id" class="product-card bg-white">
       <!-- Product Image -->
       <div
-        class="relative overflow-hidden group product-image-wrapper h-98 cursor-pointer"
+        class="relative overflow-hidden group product-image-wrapper cursor-pointer"
         @click="handleProductClick(product)"
       >
         <!-- Main Image -->
@@ -79,10 +79,153 @@
       </div>
     </div>
   </div>
+
+  <!-- Quick Add Modal -->
+  <q-dialog v-model="showQuickAdd" :maximized="false">
+    <q-card class="quick-add-card" style="min-width: 500px; max-width: 600px">
+      <q-card-section class="row items-center border-b border-gray-200">
+        <div class="text-h6 font-bold">Tùy chọn sản phẩm</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section v-if="selectedProduct" class="q-pt-md">
+        <!-- Product Preview -->
+        <div class="flex gap-4 mb-6 pb-6 border-b border-gray-200">
+          <img
+            :src="selectedProduct.images[0]"
+            :alt="selectedProduct.name"
+            class="w-24 h-24 object-cover rounded-lg"
+          />
+          <div class="flex-1">
+            <div class="text-base font-bold text-gray-900 mb-2">
+              {{ selectedProduct.name }}
+            </div>
+            <div class="text-lg font-bold text-gray-900">
+              {{ formatPrice(selectedProduct.price) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Size Selection -->
+        <div class="mb-6">
+          <label class="block text-sm font-bold text-gray-900 mb-3">
+            Kích thước <span class="text-red-500">*</span>
+          </label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="size in availableSizes"
+              :key="size"
+              @click="availableSizesForColor.has(size) && (selectedSize = size)"
+              :disabled="!availableSizesForColor.has(size)"
+              :class="[
+                'px-4 py-2 border-2 rounded-lg text-sm font-medium transition-all',
+                selectedSize === size
+                  ? 'border-gray-900 bg-gray-900 text-white'
+                  : availableSizesForColor.has(size)
+                    ? 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50',
+              ]"
+            >
+              {{ size }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Color Selection -->
+        <div class="mb-6">
+          <label class="block text-sm font-bold text-gray-900 mb-3">
+            Màu sắc <span class="text-red-500">*</span>
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <button
+              v-for="color in availableColorsForSize"
+              :key="color.name"
+              @click="color.available && (selectedColor = color.name)"
+              :disabled="!color.available"
+              class="flex flex-col items-center gap-2"
+            >
+              <div
+                :class="[
+                  'w-8 h-8 rounded-full border-2 transition-all relative',
+                  selectedColor === color.name
+                    ? 'border-gray-900 scale-110'
+                    : color.available
+                      ? 'border-gray-200 hover:border-gray-400'
+                      : 'border-gray-200 opacity-40',
+                  !color.available && 'cursor-not-allowed',
+                ]"
+                :style="{ backgroundColor: color.value }"
+              >
+                <div
+                  v-if="!color.available"
+                  class="absolute inset-0 flex items-center justify-center"
+                ></div>
+              </div>
+              <span :class="['text-xs', color.available ? 'text-gray-600' : 'text-gray-400']">
+                {{ color.name }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quantity Selection -->
+        <div class="mb-6">
+          <label class="block text-sm font-bold text-gray-900 mb-3">Số lượng</label>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center border-2 border-gray-300 rounded-lg overflow-hidden">
+              <button
+                @click="decreaseQuantity"
+                class="w-8 h-8 flex items-center justify-center bg-white hover:bg-gray-100 transition-colors"
+              >
+                <i class="fal fa-minus"></i>
+              </button>
+              <div class="w-16 h-8 flex items-center justify-center text-base font-bold bg-white">
+                {{ quantity }}
+              </div>
+              <button
+                @click="increaseQuantity"
+                class="w-8 h-8 flex items-center justify-center bg-white hover:bg-gray-100 transition-colors"
+              >
+                <i class="fal fa-plus"></i>
+              </button>
+            </div>
+            <span v-if="selectedVariantStock !== null" class="text-sm text-gray-600">
+              Còn {{ selectedVariantStock }} sản phẩm
+            </span>
+          </div>
+        </div>
+      </q-card-section>
+
+      <q-card-actions class="q-px-md q-pb-md border-t border-gray-200">
+        <q-btn
+          flat
+          label="Hủy"
+          color="grey-7"
+          v-close-popup
+          class="flex-1 !rounded-2xl"
+          no-caps
+          size="md"
+        />
+        <q-btn
+          label="Thêm vào giỏ hàng"
+          color="grey-10"
+          @click="confirmAddToCart"
+          :loading="isAdding"
+          :disable="!selectedSize || !selectedColor"
+          class="flex-1 !rounded-2xl"
+          no-caps
+          size="md"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useCartStore } from 'src/stores/useCartStore'
+import { useQuasar } from 'quasar'
 
 // Props
 defineProps({
@@ -95,8 +238,86 @@ defineProps({
 // Emits
 const emit = defineEmits(['product-click', 'add-to-cart', 'toggle-favorite'])
 
+const $q = useQuasar()
+const cartStore = useCartStore()
+
 // State
 const addingToCart = ref(null)
+const showQuickAdd = ref(false)
+const selectedProduct = ref(null)
+const selectedSize = ref(null)
+const selectedColor = ref(null)
+const quantity = ref(1)
+const isAdding = ref(false)
+
+// Computed
+const availableSizes = computed(() => {
+  if (!selectedProduct.value) return []
+  const sizes = new Set()
+  selectedProduct.value.variants?.forEach((variant) => {
+    sizes.add(variant.size)
+  })
+  return Array.from(sizes).sort()
+})
+
+const availableColors = computed(() => {
+  if (!selectedProduct.value) return []
+  const colorsMap = new Map()
+  selectedProduct.value.variants?.forEach((variant) => {
+    if (!colorsMap.has(variant.color)) {
+      colorsMap.set(variant.color, {
+        name: variant.color,
+        value: variant.colorCode,
+      })
+    }
+  })
+  return Array.from(colorsMap.values())
+})
+
+// Get available sizes for selected color
+const availableSizesForColor = computed(() => {
+  if (!selectedProduct.value || !selectedColor.value) return new Set(availableSizes.value)
+
+  const sizes = new Set()
+  selectedProduct.value.variants?.forEach((variant) => {
+    if (variant.color === selectedColor.value && variant.stock > 0) {
+      sizes.add(variant.size)
+    }
+  })
+  return sizes
+})
+
+// Get available colors for selected size
+const availableColorsForSize = computed(() => {
+  if (!selectedProduct.value || !selectedSize.value) {
+    // If no size selected, show all colors but mark which are available
+    return availableColors.value.map((color) => ({
+      ...color,
+      available:
+        selectedProduct.value.variants?.some((v) => v.color === color.name && v.stock > 0) || false,
+    }))
+  }
+
+  const availableColorNames = new Set()
+  selectedProduct.value.variants?.forEach((variant) => {
+    if (variant.size === selectedSize.value && variant.stock > 0) {
+      availableColorNames.add(variant.color)
+    }
+  })
+
+  return availableColors.value.map((color) => ({
+    ...color,
+    available: availableColorNames.has(color.name),
+  }))
+})
+
+const selectedVariantStock = computed(() => {
+  if (!selectedProduct.value || !selectedSize.value || !selectedColor.value) return null
+  const variant = selectedProduct.value.variants?.find(
+    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
+  )
+  return variant ? variant.stock : 0
+})
 
 // Methods
 const formatPrice = (price) => {
@@ -111,19 +332,107 @@ const handleProductClick = (product) => {
 }
 
 const handleAddToCart = (product) => {
-  addingToCart.value = product.id
-
-  // Emit event to parent
-  emit('add-to-cart', product)
-
-  // Reset loading state after delay
-  setTimeout(() => {
-    addingToCart.value = null
-  }, 800)
+  selectedProduct.value = product
+  selectedSize.value = null
+  selectedColor.value = null
+  quantity.value = 1
+  showQuickAdd.value = true
 }
 
 const handleToggleFavorite = (product) => {
   emit('toggle-favorite', product)
+}
+
+// Watch for selection changes to validate combinations
+watch([selectedSize, selectedColor], () => {
+  if (selectedSize.value && selectedColor.value && selectedProduct.value) {
+    const isValidCombination = selectedProduct.value.variants?.some(
+      (v) => v.size === selectedSize.value && v.color === selectedColor.value && v.stock > 0,
+    )
+    if (!isValidCombination) {
+      $q.notify({
+        message: 'Kết hợp size và màu này không có sẵn',
+        color: 'warning',
+        icon: 'warning',
+        position: 'top-right',
+      })
+    }
+  }
+})
+
+const increaseQuantity = () => {
+  if (selectedVariantStock.value && quantity.value < selectedVariantStock.value) {
+    quantity.value++
+  } else if (!selectedVariantStock.value) {
+    quantity.value++
+  }
+}
+
+const decreaseQuantity = () => {
+  if (quantity.value > 1) {
+    quantity.value--
+  }
+}
+
+const confirmAddToCart = () => {
+  if (!selectedSize.value || !selectedColor.value) {
+    $q.notify({
+      message: 'Vui lòng chọn kích thước và màu sắc',
+      color: 'warning',
+      icon: 'warning',
+      position: 'top-right',
+    })
+    return
+  }
+
+  const selectedVariant = selectedProduct.value.variants.find(
+    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
+  )
+
+  if (!selectedVariant) {
+    $q.notify({
+      message: 'Không tìm thấy sản phẩm với kích thước và màu sắc đã chọn',
+      color: 'negative',
+      icon: 'error',
+      position: 'top-right',
+    })
+    return
+  }
+
+  if (selectedVariant.stock < quantity.value) {
+    $q.notify({
+      message: `Chỉ còn ${selectedVariant.stock} sản phẩm trong kho`,
+      color: 'warning',
+      icon: 'warning',
+      position: 'top-right',
+    })
+    return
+  }
+
+  isAdding.value = true
+
+  setTimeout(() => {
+    // Add to cart store
+    cartStore.addToCart(selectedProduct.value, selectedVariant, quantity.value)
+
+    // Show success notification
+    $q.notify({
+      message: `Đã thêm ${quantity.value} sản phẩm vào giỏ hàng`,
+      color: 'positive',
+      icon: 'check_circle',
+      position: 'top-right',
+    })
+
+    // Close modal
+    showQuickAdd.value = false
+    isAdding.value = false
+
+    // Reset
+    selectedProduct.value = null
+    selectedSize.value = null
+    selectedColor.value = null
+    quantity.value = 1
+  }, 500)
 }
 </script>
 

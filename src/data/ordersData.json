@@ -1,0 +1,167 @@
+{
+  "orders": [
+    {
+      "id": "ORD001",
+      "date": "15/11/2025",
+      "status": "delivered",
+      "total": 1200000,
+      "items": [
+        {
+          "id": 1,
+          "name": "Áo thun nam basic",
+          "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
+          "size": "L",
+          "color": "Đen",
+          "quantity": 2,
+          "price": 500000
+        },
+        {
+          "id": 2,
+          "name": "Quần jean nam slim fit",
+          "image": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop",
+          "size": "M",
+          "color": "Xanh",
+          "quantity": 1,
+          "price": 700000
+        }
+      ]
+    },
+    {
+      "id": "ORD002",
+      "date": "10/11/2025",
+      "status": "shipping",
+      "total": 850000,
+      "items": [
+        {
+          "id": 3,
+          "name": "Áo khoác dù nam",
+          "image": "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=400&fit=crop",
+          "size": "XL",
+          "color": "Trắng",
+          "quantity": 1,
+          "price": 850000
+        }
+      ]
+    },
+    {
+      "id": "ORD003",
+      "date": "05/11/2025",
+      "status": "pending",
+      "total": 650000,
+      "items": [
+        {
+          "id": 4,
+          "name": "Áo polo nam",
+          "image": "https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?w=400&h=400&fit=crop",
+          "size": "M",
+          "color": "Đỏ",
+          "quantity": 2,
+          "price": 650000
+        }
+      ]
+    },
+    {
+      "id": "ORD004",
+      "date": "01/11/2025",
+      "status": "processing",
+      "total": 1500000,
+      "items": [
+        {
+          "id": 5,
+          "name": "Giày thể thao nam",
+          "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
+          "size": "42",
+          "color": "Đen trắng",
+          "quantity": 1,
+          "price": 1500000
+        }
+      ]
+    },
+    {
+      "id": "ORD005",
+      "date": "28/10/2025",
+      "status": "cancelled",
+      "total": 450000,
+      "items": [
+        {
+          "id": 6,
+          "name": "Áo sơ mi nam công sở",
+          "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=400&h=400&fit=crop",
+          "size": "L",
+          "color": "Trắng",
+          "quantity": 1,
+          "price": 450000
+        }
+      ]
+    },
+    {
+      "id": "ORD006",
+      "date": "20/10/2025",
+      "status": "delivered",
+      "total": 2300000,
+      "items": [
+        {
+          "id": 7,
+          "name": "Áo khoác bomber nam",
+          "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop",
+          "size": "XL",
+          "color": "Đen",
+          "quantity": 1,
+          "price": 1200000
+        },
+        {
+          "id": 8,
+          "name": "Quần kaki nam",
+          "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=400&fit=crop",
+          "size": "L",
+          "color": "Be",
+          "quantity": 2,
+          "price": 1100000
+        }
+      ]
+    },
+    {
+      "id": "ORD007",
+      "date": "15/10/2025",
+      "status": "delivered",
+      "total": 980000,
+      "items": [
+        {
+          "id": 9,
+          "name": "Áo hoodie nam",
+          "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop",
+          "size": "M",
+          "color": "Xám",
+          "quantity": 1,
+          "price": 980000
+        }
+      ]
+    },
+    {
+      "id": "ORD008",
+      "date": "10/10/2025",
+      "status": "delivered",
+      "total": 1750000,
+      "items": [
+        {
+          "id": 10,
+          "name": "Balo laptop nam",
+          "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
+          "size": "Standard",
+          "color": "Đen",
+          "quantity": 1,
+          "price": 750000
+        },
+        {
+          "id": 11,
+          "name": "Dây lưng da nam",
+          "image": "https://images.unsplash.com/photo-1624222247344-70f1d8b43d85?w=400&h=400&fit=crop",
+          "size": "Free size",
+          "color": "Nâu",
+          "quantity": 2,
+          "price": 1000000
+        }
+      ]
+    }
+  ]
+}

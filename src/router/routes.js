@@ -8,6 +8,9 @@ const routes = [
       { path: 'shop', component: () => import('pages/home/ProductsListPage.vue') },
       { path: 'shop/:category', component: () => import('pages/home/ProductsListPage.vue') },
       { path: 'product/:slug', component: () => import('pages/home/ProductDetailPage.vue') },
+      { path: 'checkout', component: () => import('pages/home/CheckoutPage.vue') },
+      { path: 'account', component: () => import('pages/home/MyAccountPage.vue') },
+      { path: 'orders', component: () => import('pages/home/MyOrdersPage.vue') },
     ],
   },
 
@@ -23,22 +26,21 @@ const routes = [
     children: [{ path: '', component: () => import('pages/SignUpPage.vue') }],
   },
 
-  // Admin Dashboard Routes
+  // Admin Routes
   {
-    path: '/dashboard',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/DashboardPage.vue') }],
-  },
-
-  // Product Management Routes
-  {
-    path: '/products',
+    path: '/admin',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/products/ProductListPage.vue') },
-      { path: 'add', component: () => import('pages/products/AddProductPage.vue') },
-      { path: 'edit/:id', component: () => import('pages/products/AddProductPage.vue') },
-      { path: 'categories', component: () => import('pages/products/CategoryPage.vue') },
+      { path: '', redirect: '/admin/dashboard' },
+      { path: 'dashboard', component: () => import('pages/DashboardPage.vue') },
+      { path: 'orders', component: () => import('pages/OrdersDashboardPage.vue') },
+      { path: 'customers', component: () => import('pages/CustomersDashboardPage.vue') },
+      { path: 'analytics', component: () => import('pages/AnalyticsDashboardPage.vue') },
+      { path: 'settings', component: () => import('pages/SettingsDashboardPage.vue') },
+      { path: 'products', component: () => import('pages/products/ProductListPage.vue') },
+      { path: 'products/add', component: () => import('pages/products/AddProductPage.vue') },
+      { path: 'products/edit/:id', component: () => import('pages/products/AddProductPage.vue') },
+      { path: 'products/categories', component: () => import('pages/products/CategoryPage.vue') },
     ],
   },
 
