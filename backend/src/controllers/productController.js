@@ -1,4 +1,5 @@
 import Product from '../models/Product.js'
+import Category from '../models/Category.js'
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -37,8 +38,12 @@ export const getProducts = async (req, res) => {
     // Pagination
     const skip = (Number(page) - 1) * Number(limit)
 
-    // Execute query
-    const products = await Product.find(query).sort(sort).limit(Number(limit)).skip(skip)
+    // Execute query with populate
+    const products = await Product.find(query)
+      .populate('category', 'name slug')
+      .sort(sort)
+      .limit(Number(limit))
+      .skip(skip)
 
     const total = await Product.countDocuments(query)
 
@@ -65,7 +70,7 @@ export const getProducts = async (req, res) => {
 // @access  Public
 export const getProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id)
+    const product = await Product.findById(req.params.id).populate('category', 'name slug')
 
     if (!product) {
       return res.status(404).json({
@@ -117,7 +122,23 @@ export const getProductBySlug = async (req, res) => {
 // @access  Private/Admin
 export const createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body)
+    const productData = { ...req.body }
+
+    // Validate category exists if provided
+    if (productData.category) {
+      const categoryExists = await Category.findById(productData.category)
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category not found',
+        })
+      }
+    }
+
+    const product = await Product.create(productData)
+
+    // Populate category for response
+    await product.populate('category', 'name slug')
 
     res.status(201).json({
       success: true,
@@ -137,10 +158,23 @@ export const createProduct = async (req, res) => {
 // @access  Private/Admin
 export const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+    const productData = { ...req.body }
+
+    // Validate category exists if provided
+    if (productData.category) {
+      const categoryExists = await Category.findById(productData.category)
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category not found',
+        })
+      }
+    }
+
+    const product = await Product.findByIdAndUpdate(req.params.id, productData, {
       new: true,
       runValidators: true,
-    })
+    }).populate('category', 'name slug')
 
     if (!product) {
       return res.status(404).json({

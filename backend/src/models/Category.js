@@ -14,8 +14,10 @@ const categorySchema = new mongoose.Schema(
       lowercase: true,
     },
     description: String,
-    image: String,
-    icon: String,
+    icon: {
+      type: String,
+      default: 'category',
+    },
     parent: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
@@ -23,9 +25,10 @@ const categorySchema = new mongoose.Schema(
     },
     order: {
       type: Number,
-      default: 0,
+      default: 1,
+      min: [1, 'Order must be at least 1'],
     },
-    isActive: {
+    active: {
       type: Boolean,
       default: true,
     },

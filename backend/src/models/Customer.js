@@ -6,9 +6,9 @@ const customerSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
-    name: {
+    fullName: {
       type: String,
-      required: [true, 'Customer name is required'],
+      required: [true, 'Full name is required'],
       trim: true,
     },
     email: {
@@ -18,6 +18,12 @@ const customerSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    password: {
+      type: String,
+      required: [true, 'Password is required'],
+      minlength: [6, 'Password must be at least 6 characters'],
+      select: false, // Don't return password in queries by default
     },
     phone: {
       type: String,
@@ -66,6 +72,27 @@ customerSchema.pre('save', async function (next) {
   }
   next()
 })
+
+// Hash password before saving
+customerSchema.pre('save', async function (next) {
+  // Only hash if password is modified
+  if (!this.isModified('password')) return next()
+
+  try {
+    const bcrypt = await import('bcryptjs')
+    const salt = await bcrypt.default.genSalt(10)
+    this.password = await bcrypt.default.hash(this.password, salt)
+    next()
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Method to compare password for login
+customerSchema.methods.comparePassword = async function (candidatePassword) {
+  const bcrypt = await import('bcryptjs')
+  return await bcrypt.default.compare(candidatePassword, this.password)
+}
 
 // Virtual for average order value
 customerSchema.virtual('averageOrderValue').get(function () {

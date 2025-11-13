@@ -45,35 +45,6 @@
 
         <!-- Form -->
         <div class="p-8">
-          <!-- Demo Credentials Info -->
-          <div
-            class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg"
-          >
-            <div class="flex items-start gap-2">
-              <svg
-                class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clip-rule="evenodd"
-                ></path>
-              </svg>
-              <div>
-                <p class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
-                  Demo Admin Account
-                </p>
-                <p class="text-xs text-blue-700 dark:text-blue-400">
-                  <strong>Email:</strong> admin@admin.com<br />
-                  <strong>Password:</strong> 123456<br />
-                  <strong>Username:</strong> Admin Store
-                </p>
-              </div>
-            </div>
-          </div>
-
           <form @submit.prevent="onSubmit" class="space-y-4">
             <!-- Email Input -->
             <div>
@@ -300,6 +271,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -386,27 +358,27 @@ const onSubmit = async () => {
   loading.value = true
 
   try {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Call login API
+    const response = await axios.post('http://localhost:5000/api/auth/login', {
+      email: email.value,
+      password: password.value,
+    })
 
-    // Demo admin account
-    const adminAccount = {
-      email: 'admin@admin.com',
-      password: '123456',
-      username: 'Admin Store',
-      role: 'admin',
-    }
+    if (response.data.success) {
+      const userData = response.data.data
 
-    // Check credentials
-    if (email.value === adminAccount.email && password.value === adminAccount.password) {
-      // Save user data to localStorage
-      const userData = {
-        email: adminAccount.email,
-        username: adminAccount.username,
-        role: adminAccount.role,
-        isAuthenticated: true,
-      }
-      localStorage.setItem('currentUser', JSON.stringify(userData))
+      // Save user data and token to localStorage
+      localStorage.setItem('adminToken', userData.token)
+      localStorage.setItem(
+        'currentUser',
+        JSON.stringify({
+          id: userData.user._id,
+          email: userData.user.email,
+          username: userData.user.username,
+          role: userData.user.role,
+          isAuthenticated: true,
+        }),
+      )
 
       // Remember me functionality
       if (rememberMe.value) {
@@ -419,20 +391,19 @@ const onSubmit = async () => {
 
       $q.notify({
         color: 'positive',
-        message: `Welcome back, ${adminAccount.username}!`,
+        message: `Welcome back, ${userData.user.username}!`,
         icon: 'check_circle',
         position: 'top',
       })
 
       // Redirect to dashboard
       router.push('/admin/dashboard')
-    } else {
-      throw new Error('Invalid credentials')
     }
-  } catch {
+  } catch (error) {
+    console.error('Login error:', error)
     $q.notify({
       color: 'negative',
-      message: 'Invalid email or password. Please try again.',
+      message: error.response?.data?.message || 'Invalid email or password. Please try again.',
       icon: 'error',
       position: 'top',
     })

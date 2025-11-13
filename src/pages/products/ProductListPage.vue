@@ -91,7 +91,23 @@
           dense
           label="Category"
           clearable
-        />
+          use-input
+          input-debounce="300"
+          @filter="filterCategoryOptions"
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section
+                :style="{ paddingLeft: scope.opt.level ? `${scope.opt.level * 16}px` : '0' }"
+              >
+                <q-item-label>
+                  <span v-if="scope.opt.level">└─</span>
+                  {{ scope.opt.label }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
 
         <q-select
           v-model="selectedStatus"
@@ -256,9 +272,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -269,120 +286,95 @@ const selectedCategory = ref(null)
 const selectedStatus = ref(null)
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
+const products = ref([])
+const categories = ref([])
+const allCategoryOptions = ref([])
+const isLoading = ref(false)
 
-const categoryOptions = ref([
-  "Men's Wear",
-  "Women's Wear",
-  'Footwear',
-  'Accessories',
-  'Basics',
-  'Outerwear',
-])
+const statusOptions = ref(['active', 'inactive'])
 
-const statusOptions = ref(['Active', 'Draft', 'Inactive'])
+// Fetch data from API
+const fetchProducts = async () => {
+  isLoading.value = true
+  try {
+    const token = localStorage.getItem('adminToken')
+    const response = await axios.get('http://localhost:5000/api/products', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
-const products = ref([
-  {
-    id: 1,
-    name: 'Classic Denim Jacket',
-    sku: 'CDJ-001',
-    category: "Men's Wear",
-    price: 89.99,
-    stock: 145,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=100&h=100&fit=crop',
-  },
-  {
-    id: 2,
-    name: 'Summer Floral Dress',
-    sku: 'SFD-002',
-    category: "Women's Wear",
-    price: 129.99,
-    stock: 87,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=100&h=100&fit=crop',
-  },
-  {
-    id: 3,
-    name: 'Slim Fit Chinos',
-    sku: 'SFC-003',
-    category: "Men's Wear",
-    price: 79.99,
-    stock: 23,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=100&h=100&fit=crop',
-  },
-  {
-    id: 4,
-    name: 'Cotton T-Shirt Pack',
-    sku: 'CTP-004',
-    category: 'Basics',
-    price: 49.99,
-    stock: 0,
-    status: 'Inactive',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop',
-  },
-  {
-    id: 5,
-    name: 'Leather Ankle Boots',
-    sku: 'LAB-005',
-    category: 'Footwear',
-    price: 159.99,
-    stock: 54,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=100&h=100&fit=crop',
-  },
-  {
-    id: 6,
-    name: 'Wool Blend Coat',
-    sku: 'WBC-006',
-    category: 'Outerwear',
-    price: 199.99,
-    stock: 32,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=100&h=100&fit=crop',
-  },
-  {
-    id: 7,
-    name: 'Designer Sunglasses',
-    sku: 'DSG-007',
-    category: 'Accessories',
-    price: 149.99,
-    stock: 76,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100&h=100&fit=crop',
-  },
-  {
-    id: 8,
-    name: 'Canvas Sneakers',
-    sku: 'CSN-008',
-    category: 'Footwear',
-    price: 69.99,
-    stock: 12,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=100&h=100&fit=crop',
-  },
-  {
-    id: 9,
-    name: 'Silk Scarf',
-    sku: 'SSC-009',
-    category: 'Accessories',
-    price: 39.99,
-    stock: 98,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=100&h=100&fit=crop',
-  },
-  {
-    id: 10,
-    name: 'Leather Wallet',
-    sku: 'LWL-010',
-    category: 'Accessories',
-    price: 59.99,
-    stock: 5,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=100&h=100&fit=crop',
-  },
-])
+    if (response.data.success) {
+      products.value = response.data.data.map((p) => ({
+        id: p._id,
+        name: p.name,
+        sku: p.sku,
+        category: p.category?.name || 'N/A',
+        categoryId: p.category?._id,
+        price: p.price,
+        stock: p.stock,
+        status: p.active ? 'active' : 'inactive',
+        image: p.images?.[0] || '',
+      }))
+    }
+  } catch (error) {
+    console.error('Fetch products error:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Failed to load products',
+      position: 'top',
+    })
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/categories')
+    if (response.data.success) {
+      const buildHierarchy = (parentId = null, level = 0) => {
+        return response.data.data
+          .filter((c) => {
+            if (parentId === null) return !c.parent
+            return c.parent?._id === parentId || c.parent === parentId
+          })
+          .flatMap((c) => [
+            { label: c.name, value: c._id, level },
+            ...buildHierarchy(c._id, level + 1),
+          ])
+      }
+
+      allCategoryOptions.value = buildHierarchy()
+      categories.value = [...allCategoryOptions.value]
+    }
+  } catch (error) {
+    console.error('Fetch categories error:', error)
+  }
+}
+
+// Mount
+onMounted(() => {
+  fetchProducts()
+  fetchCategories()
+})
+
+// Computed for category options
+const categoryOptions = computed(() => categories.value)
+
+// Filter function for categories
+const filterCategoryOptions = (val, update) => {
+  update(() => {
+    if (val === '') {
+      categories.value = [...allCategoryOptions.value]
+    } else {
+      const needle = val.toLowerCase()
+      categories.value = allCategoryOptions.value.filter(
+        (v) => v.label.toLowerCase().indexOf(needle) > -1,
+      )
+    }
+  })
+}
 
 // Computed
 const totalProducts = computed(() => products.value.length)
@@ -431,11 +423,7 @@ const editProduct = (product) => {
 }
 
 const viewProduct = (product) => {
-  $q.notify({
-    type: 'info',
-    message: `Viewing product: ${product.name}`,
-    position: 'top',
-  })
+  router.push(`/admin/products/view/${product.id}`)
 }
 
 const deleteProduct = (product) => {
@@ -444,13 +432,33 @@ const deleteProduct = (product) => {
     message: `Are you sure you want to delete "${product.name}"?`,
     cancel: true,
     persistent: true,
-  }).onOk(() => {
-    const index = products.value.findIndex((p) => p.id === product.id)
-    if (index > -1) {
-      products.value.splice(index, 1)
+  }).onOk(async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const response = await axios.delete(`http://localhost:5000/api/products/${product.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.data.success) {
+        // Remove from local list
+        const index = products.value.findIndex((p) => p.id === product.id)
+        if (index > -1) {
+          products.value.splice(index, 1)
+        }
+
+        $q.notify({
+          type: 'positive',
+          message: 'Product deleted successfully',
+          position: 'top',
+        })
+      }
+    } catch (error) {
+      console.error('Delete product error:', error)
       $q.notify({
-        type: 'positive',
-        message: 'Product deleted successfully',
+        type: 'negative',
+        message: error.response?.data?.message || 'Failed to delete product',
         position: 'top',
       })
     }

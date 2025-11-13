@@ -1,15 +1,56 @@
-import { computed } from 'vue'
-import storeData from 'src/data/store-data.json'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+
+const API_URL = 'http://localhost:5000/api'
 
 /**
- * Composable to access store data from JSON file
+ * Composable to access store data from API
  */
 export function useStoreData() {
+  // State
+  const categoriesData = ref([])
+  const productsData = ref([])
+  const collectionsData = ref([])
+  const isLoading = ref(false)
+  const error = ref(null)
+
+  // Fetch data from API
+  const fetchData = async () => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      // Fetch categories, products, and collections in parallel
+      const [categoriesRes, productsRes] = await Promise.all([
+        axios.get(`${API_URL}/categories`),
+        axios.get(`${API_URL}/products`),
+      ])
+
+      if (categoriesRes.data.success) {
+        categoriesData.value = categoriesRes.data.data
+      }
+
+      if (productsRes.data.success) {
+        productsData.value = productsRes.data.data
+      }
+    } catch (err) {
+      console.error('Error fetching store data:', err)
+      error.value = err.message
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Auto-fetch on mount
+  onMounted(() => {
+    fetchData()
+  })
+
   // Categories with "All Products" option
   const categories = computed(() => [
     { id: 0, name: 'Tất cả sản phẩm', slug: 'all' },
-    ...storeData.categories.map((cat) => ({
-      id: cat.id,
+    ...categoriesData.value.map((cat) => ({
+      id: cat._id,
       name: cat.name,
       slug: cat.slug,
       description: cat.description,
@@ -20,8 +61,8 @@ export function useStoreData() {
 
   // Products transformed for UI
   const products = computed(() =>
-    storeData.products.map((product) => ({
-      id: product.id,
+    productsData.value.map((product) => ({
+      id: product._id,
       sku: product.sku,
       name: product.name,
       slug: product.slug,
@@ -29,61 +70,36 @@ export function useStoreData() {
       price: product.price,
       originalPrice: product.originalPrice,
       discount: product.discount,
-      image: product.images[0], // Main image
-      imageHover: product.images[1] || product.images[0], // Hover image
-      images: product.images, // All images
-      category: product.categoryId,
-      categoryId: product.categoryId,
-      collectionIds: product.collectionIds,
-      variants: product.variants,
-      rating: product.rating,
-      reviews: product.reviews,
-      tags: product.tags,
+      image: product.images?.[0] || '', // Main image
+      imageHover: product.images?.[1] || product.images?.[0] || '', // Hover image
+      images: product.images || [], // All images
+      category: product.category?._id || product.category,
+      categoryId: product.category?._id || product.category,
+      collectionIds: product.collectionIds || [],
+      variants: product.variants || [],
+      rating: product.rating || 0,
+      reviews: product.reviews || 0,
+      tags: product.tags || [],
       active: product.active,
       featured: product.featured,
+      stock: product.stock || 0,
+      sold: product.sold || 0,
     })),
   )
 
-  // Collections
-  const collections = computed(() =>
-    storeData.collections.map((collection) => ({
-      id: collection.id,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      image: collection.image,
-      startDate: collection.startDate,
-      endDate: collection.endDate,
-      active: collection.active,
-    })),
-  )
+  // Collections (empty for now, can be added later)
+  const collections = computed(() => collectionsData.value)
 
-  // Customers
-  const customers = computed(() => storeData.customers)
-
-  // Orders
-  const orders = computed(() => storeData.orders)
-
-  // Users
-  const users = computed(() => storeData.users)
-
-  // Payments
-  const payments = computed(() => storeData.payments)
-
-  // Shipping Methods
-  const shippingMethods = computed(() => storeData.shippingMethods)
-
-  // Payment Methods
-  const paymentMethods = computed(() => storeData.paymentMethods)
-
-  // Vouchers
-  const vouchers = computed(() => storeData.vouchers)
-
-  // Reviews
-  const reviews = computed(() => storeData.reviews)
-
-  // Settings
-  const settings = computed(() => storeData.settings)
+  // These are kept as empty arrays since they're not used in the current implementation
+  const customers = computed(() => [])
+  const orders = computed(() => [])
+  const users = computed(() => [])
+  const payments = computed(() => [])
+  const shippingMethods = computed(() => [])
+  const paymentMethods = computed(() => [])
+  const vouchers = computed(() => [])
+  const reviews = computed(() => [])
+  const settings = computed(() => ({}))
 
   // Helper functions
   const getCategoryById = (id) => {
@@ -156,6 +172,11 @@ export function useStoreData() {
     vouchers,
     reviews,
     settings,
+
+    // State
+    isLoading,
+    error,
+    fetchData,
 
     // Helper functions
     getCategoryById,

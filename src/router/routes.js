@@ -16,6 +16,16 @@ const routes = [
 
   // Auth Routes
   {
+    path: '/home/login',
+    component: () => import('layouts/LandingLayout.vue'),
+    children: [{ path: '', component: () => import('pages/home/LoginPage.vue') }],
+  },
+  {
+    path: '/home/register',
+    component: () => import('layouts/LandingLayout.vue'),
+    children: [{ path: '', component: () => import('pages/home/RegisterPage.vue') }],
+  },
+  {
     path: '/login',
     component: () => import('layouts/LoginLayout.vue'),
     children: [{ path: '', component: () => import('pages/LoginPage.vue') }],

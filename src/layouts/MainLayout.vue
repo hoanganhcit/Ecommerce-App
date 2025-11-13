@@ -85,7 +85,7 @@
                   <q-icon name="person" />
                 </q-avatar>
                 <div class="flex-1 text-left">
-                  <p class="text-gray-800 font-medium text-capitalize leading-none">
+                  <p class="text-gray-800 font-medium text-capitalize leading-none !mb-0">
                     {{ currentUser?.username || 'Admin' }}
                   </p>
                 </div>

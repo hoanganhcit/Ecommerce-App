@@ -7,6 +7,12 @@ const productSchema = new mongoose.Schema(
       required: [true, 'Product name is required'],
       trim: true,
     },
+    sku: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
     slug: {
       type: String,
       unique: true,
@@ -32,9 +38,9 @@ const productSchema = new mongoose.Schema(
       max: 100,
     },
     category: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
       required: [true, 'Category is required'],
-      enum: ['men', 'women', 'kids', 'accessories', 'sale'],
     },
     images: [
       {

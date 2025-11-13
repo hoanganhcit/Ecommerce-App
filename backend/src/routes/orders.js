@@ -8,18 +8,30 @@ import {
   getCustomerOrders,
 } from '../controllers/orderController.js'
 import { protect, admin } from '../middleware/auth.js'
+import { protectCustomer } from '../middleware/customerAuth.js'
 
 const router = express.Router()
 
 // Public/Customer routes
 router.post('/', createOrder)
 
-// Protected routes
-router.get('/customer/:customerId', protect, getCustomerOrders)
-router.get('/:id', protect, getOrder)
-router.put('/:id/cancel', protect, cancelOrder)
+// Protected customer routes
+router.get(
+  '/my-orders',
+  protectCustomer,
+  (req, res, next) => {
+    // Set customerId from logged-in customer
+    req.params.customerId = req.customer._id
+    next()
+  },
+  getCustomerOrders,
+)
 
-// Admin routes
+router.get('/:id', protectCustomer, getOrder)
+router.put('/:id/cancel', protectCustomer, cancelOrder)
+
+// Admin routes - legacy
+router.get('/customer/:customerId', protect, getCustomerOrders)
 router.get('/', protect, admin, getOrders)
 router.put('/:id/status', protect, admin, updateOrderStatus)
 

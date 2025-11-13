@@ -326,6 +326,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -427,23 +428,31 @@ const onSubmit = async () => {
   loading.value = true
 
   try {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    $q.notify({
-      color: 'positive',
-      message: 'Account created successfully!',
-      icon: 'check_circle',
-      position: 'top',
+    // Call register API
+    const response = await axios.post('http://localhost:5000/api/auth/register', {
+      username: name.value,
+      email: email.value,
+      password: password.value,
     })
 
-    // Redirect to dashboard or login
-    setTimeout(() => {
-      router.push('/dashboard')
-    }, 500)
-  } catch {
+    if (response.data.success) {
+      $q.notify({
+        color: 'positive',
+        message: 'Account created successfully! Please login.',
+        icon: 'check_circle',
+        position: 'top',
+      })
+
+      // Redirect to login page
+      setTimeout(() => {
+        router.push('/login')
+      }, 1000)
+    }
+  } catch (error) {
+    console.error('Registration error:', error)
     $q.notify({
       color: 'negative',
-      message: 'Registration failed. Please try again.',
+      message: error.response?.data?.message || 'Registration failed. Please try again.',
       icon: 'error',
       position: 'top',
     })

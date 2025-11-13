@@ -319,6 +319,7 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useCartStore } from 'src/stores/useCartStore'
 import { useStoreData } from 'src/composables/useStoreData'
+import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -518,46 +519,68 @@ const handlePlaceOrder = async () => {
   isSubmitting.value = true
 
   try {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Prepare order items
+    const orderItems = cartItems.value.map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+      size: item.variant?.size,
+      color: item.variant?.color,
+    }))
 
-    // Create order data
+    // Prepare order data
     const orderData = {
-      ...form.value,
-      items: cartItems.value,
-      subtotal: subtotal.value,
-      shippingFee: shippingFee.value,
-      discount: discount.value,
-      voucher: appliedVoucher.value,
-      total: total.value,
-      orderDate: new Date().toISOString(),
-      status: 'pending',
+      items: orderItems,
+      customerInfo: {
+        fullName: form.value.fullName,
+        phone: form.value.phone,
+        email: form.value.email,
+      },
+      shippingAddress: {
+        address: form.value.address,
+        city: form.value.city,
+        district: form.value.district,
+        ward: form.value.ward,
+      },
+      paymentMethod: form.value.paymentMethod,
+      notes: form.value.note,
+      voucher: appliedVoucher.value
+        ? {
+            code: appliedVoucher.value.code,
+            type: appliedVoucher.value.type,
+            value: appliedVoucher.value.value,
+          }
+        : null,
     }
 
-    console.log('Order placed:', orderData)
+    // Call API to create order
+    const response = await axios.post('http://localhost:5000/api/orders', orderData)
 
-    // Clear cart
-    clearCart()
+    if (response.data.success) {
+      console.log('Order created:', response.data.data)
 
-    // Show success message
-    $q.notify({
-      type: 'positive',
-      message: 'Đặt hàng thành công!',
-      caption: 'Chúng tôi sẽ liên hệ với bạn sớm nhất',
-      position: 'top-right',
-      timeout: 3000,
-    })
+      // Clear cart
+      clearCart()
 
-    // Redirect to order confirmation or home
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
+      // Show success message
+      $q.notify({
+        type: 'positive',
+        message: 'Đặt hàng thành công!',
+        caption: `Mã đơn hàng: ${response.data.data.orderId}`,
+        position: 'top-right',
+        timeout: 3000,
+      })
+
+      // Redirect to orders page
+      setTimeout(() => {
+        router.push('/orders')
+      }, 2000)
+    }
   } catch (error) {
     console.error('Order error:', error)
     $q.notify({
       type: 'negative',
       message: 'Đặt hàng thất bại',
-      caption: 'Vui lòng thử lại sau',
+      caption: error.response?.data?.message || 'Vui lòng thử lại sau',
       position: 'top-right',
     })
   } finally {

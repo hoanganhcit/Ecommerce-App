@@ -9,36 +9,10 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Sidebar Menu -->
-        <aside class="lg:col-span-1">
-          <div class="bg-white rounded-lg border border-gray-200 p-4 sticky top-24">
-            <nav class="space-y-1">
-              <router-link
-                to="/account"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
-              >
-                <i class="fal fa-user-circle text-lg"></i>
-                <span>Thông tin tài khoản</span>
-              </router-link>
-              <router-link
-                to="/orders"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-900 bg-gray-100 font-medium transition-all"
-              >
-                <i class="fal fa-clipboard-list text-lg"></i>
-                <span>Đơn hàng của tôi</span>
-              </router-link>
-              <button
-                @click="handleLogout"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all"
-              >
-                <i class="fal fa-sign-out text-lg"></i>
-                <span>Đăng xuất</span>
-              </button>
-            </nav>
-          </div>
-        </aside>
+        <AccountSidebar />
 
         <!-- Main Content -->
-        <main class="lg:col-span-3">
+        <main class="lg:col-span-3 space-y-6">
           <!-- Filter Tabs -->
           <div class="bg-white rounded-lg border border-gray-200 mb-6">
             <div class="flex overflow-x-auto">
@@ -65,10 +39,28 @@
           </div>
 
           <!-- Orders List -->
-          <div class="space-y-4">
+          <div v-if="isLoading" class="space-y-4">
+            <!-- Loading Skeleton -->
+            <div
+              v-for="i in 3"
+              :key="i"
+              class="bg-white rounded-lg border border-gray-200 p-6 animate-pulse"
+            >
+              <div class="flex items-center justify-between mb-4">
+                <div class="h-4 bg-gray-200 rounded w-32"></div>
+                <div class="h-6 bg-gray-200 rounded w-24"></div>
+              </div>
+              <div class="space-y-3">
+                <div class="h-4 bg-gray-200 rounded w-full"></div>
+                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="space-y-4">
             <div
               v-for="order in filteredOrders"
-              :key="order.id"
+              :key="order._id"
               class="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
               <!-- Order Header -->
@@ -77,11 +69,13 @@
                   <div class="flex items-center gap-4">
                     <div>
                       <span class="text-xs text-gray-500">Mã đơn hàng:</span>
-                      <span class="ml-2 font-semibold text-gray-900">#{{ order.id }}</span>
+                      <span class="ml-2 font-semibold text-gray-900"
+                        >#{{ order.orderId || order._id }}</span
+                      >
                     </div>
                     <div class="h-4 w-px bg-gray-300"></div>
                     <div>
-                      <span class="text-xs text-gray-500">{{ order.date }}</span>
+                      <span class="text-xs text-gray-500">{{ formatDate(order.createdAt) }}</span>
                     </div>
                   </div>
                   <div>
@@ -102,16 +96,18 @@
                 <div class="space-y-3">
                   <div
                     v-for="item in order.items"
-                    :key="item.id"
+                    :key="item._id"
                     class="flex gap-4 pb-3 border-b border-gray-100 last:border-0"
                   >
                     <img
-                      :src="item.image"
-                      :alt="item.name"
+                      :src="item.product?.images?.[0] || '/placeholder.jpg'"
+                      :alt="item.product?.name || 'Product'"
                       class="w-20 h-20 object-cover rounded"
                     />
                     <div class="flex-1 min-w-0">
-                      <div class="font-medium text-gray-900 line-clamp-2">{{ item.name }}</div>
+                      <div class="font-medium text-gray-900 line-clamp-2">
+                        {{ item.product?.name || 'Sản phẩm' }}
+                      </div>
                       <p class="text-sm text-gray-500 mt-1">
                         <span v-if="item.size">Size: {{ item.size }}</span>
                         <span v-if="item.color" class="ml-2">Màu: {{ item.color }}</span>
@@ -132,13 +128,15 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <i class="fal fa-box text-gray-400"></i>
-                    <span class="text-sm text-gray-600">{{ order.items.length }} sản phẩm</span>
+                    <span class="text-sm text-gray-600"
+                      >{{ order.items?.length || 0 }} sản phẩm</span
+                    >
                   </div>
                   <div class="flex items-center gap-4">
                     <div class="text-right">
                       <div class="text-xs text-gray-500">Tổng tiền:</div>
                       <div class="text-lg font-bold text-gray-900">
-                        {{ formatPrice(order.total) }}
+                        {{ formatPrice(order.total || 0) }}
                       </div>
                     </div>
                     <div class="flex gap-2">
@@ -147,7 +145,7 @@
                         outline
                         color="primary"
                         size="sm"
-                        @click="viewOrderDetail(order.id)"
+                        @click="viewOrderDetail(order._id)"
                       />
                       <q-btn
                         v-if="order.status === 'delivered'"
@@ -155,7 +153,7 @@
                         unelevated
                         color="primary"
                         size="sm"
-                        @click="reorder(order.id)"
+                        @click="reorder(order._id)"
                       />
                       <q-btn
                         v-if="order.status === 'pending'"
@@ -163,7 +161,7 @@
                         outline
                         color="negative"
                         size="sm"
-                        @click="cancelOrder(order.id)"
+                        @click="cancelOrder(order._id)"
                       />
                     </div>
                   </div>
@@ -177,13 +175,14 @@
               class="bg-white rounded-lg border border-gray-200 p-12 text-center"
             >
               <i class="fal fa-clipboard-list text-gray-300 text-6xl mb-4"></i>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có đơn hàng</h3>
+              <div class="text-lg font-semibold text-gray-900 mb-2">Chưa có đơn hàng</div>
               <p class="text-gray-500 mb-6">
                 {{ getEmptyMessage() }}
               </p>
               <q-btn
                 label="Tiếp tục mua sắm"
-                color="primary"
+                class="!bg-gray-900 text-white hover:!bg-gray-800"
+                no-caps
                 unelevated
                 @click="$router.push('/shop')"
               />
@@ -199,14 +198,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import ordersData from 'src/data/ordersData.json'
+import { useAuthStore } from 'src/stores/useAuthStore'
+import axios from 'axios'
+import AccountSidebar from 'src/components/home/AccountSidebar.vue'
 
 const router = useRouter()
 const $q = useQuasar()
+const { customer, getAuthHeader } = useAuthStore()
 
 // State
 const selectedStatus = ref('all')
 const orders = ref([])
+const isLoading = ref(false)
 
 // Order Statuses
 const orderStatuses = [
@@ -218,9 +221,36 @@ const orderStatuses = [
   { value: 'cancelled', label: 'Đã hủy' },
 ]
 
-// Load orders from JSON
+// Load orders from API
+const loadOrders = async () => {
+  if (!customer.value) {
+    router.push('/login')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const response = await axios.get('http://localhost:5000/api/orders/my-orders', {
+      headers: getAuthHeader(),
+    })
+
+    if (response.data.success) {
+      orders.value = response.data.data || []
+    }
+  } catch (error) {
+    console.error('Load orders error:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Không thể tải danh sách đơn hàng',
+      position: 'top-right',
+    })
+  } finally {
+    isLoading.value = false
+  }
+}
+
 onMounted(() => {
-  orders.value = ordersData.orders
+  loadOrders()
 })
 
 // Computed
@@ -269,6 +299,18 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 const viewOrderDetail = (orderId) => {
   router.push(`/orders/${orderId}`)
 }
@@ -287,27 +329,31 @@ const cancelOrder = (orderId) => {
     message: 'Bạn có chắc chắn muốn hủy đơn hàng này?',
     cancel: true,
     persistent: true,
-  }).onOk(() => {
-    const order = orders.value.find((o) => o.id === orderId)
-    if (order) {
-      order.status = 'cancelled'
+  }).onOk(async () => {
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/orders/${orderId}/cancel`,
+        {},
+        { headers: getAuthHeader() },
+      )
+
+      if (response.data.success) {
+        // Reload orders
+        await loadOrders()
+        $q.notify({
+          type: 'positive',
+          message: 'Hủy đơn hàng thành công',
+          position: 'top-right',
+        })
+      }
+    } catch (error) {
+      console.error('Cancel order error:', error)
       $q.notify({
-        type: 'positive',
-        message: 'Hủy đơn hàng thành công',
+        type: 'negative',
+        message: error.response?.data?.message || 'Không thể hủy đơn hàng',
         position: 'top-right',
       })
     }
-  })
-}
-
-const handleLogout = () => {
-  $q.dialog({
-    title: 'Đăng xuất',
-    message: 'Bạn có chắc chắn muốn đăng xuất?',
-    cancel: true,
-    persistent: true,
-  }).onOk(() => {
-    router.push('/login')
   })
 }
 </script>

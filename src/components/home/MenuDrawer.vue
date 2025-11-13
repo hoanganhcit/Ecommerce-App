@@ -62,14 +62,22 @@
       <!-- Footer - User Info -->
       <div class="border-t border-gray-200 p-6">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-            <i class="fal fa-user text-gray-600"></i>
+          <div
+            class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+          >
+            <img
+              v-if="isAuthenticated && userAvatar"
+              :src="userAvatar"
+              alt="Avatar"
+              class="w-full h-full object-cover"
+            />
+            <i v-else class="fal fa-user text-gray-600"></i>
           </div>
-          <div>
+          <div class="flex-1">
             <div class="text-sm font-semibold text-gray-100 mb-1">
               {{ userName || 'Khách' }}
             </div>
-            <div v-if="!userName" class="flex gap-2">
+            <div v-if="!isAuthenticated" class="flex gap-2">
               <q-btn
                 label="Đăng Nhập"
                 color="primary"
@@ -87,6 +95,13 @@
                 @click="handleRegister"
               />
             </div>
+            <button
+              v-else
+              @click="handleLogout"
+              class="text-xs text-red-400 hover:text-red-300 transition-colors"
+            >
+              Đăng xuất
+            </button>
           </div>
         </div>
       </div>
@@ -95,7 +110,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
+import { useAuthStore } from 'src/stores/useAuthStore'
+
+const router = useRouter()
+const $q = useQuasar()
+const { isAuthenticated, userName, userAvatar, logout } = useAuthStore()
 
 // Props
 defineProps({
@@ -109,11 +130,37 @@ defineProps({
   },
 })
 
-// Mock user data - Replace with actual auth store
-const userName = ref(null) // null = guest, or set to user name when logged in
+// Handle login button click
+const handleLogin = () => {
+  router.push('/home/login')
+}
 
-// You can integrate with your auth store like this:
-// import { useAuthStore } from 'src/stores/useAuthStore'
-// const { user } = useAuthStore()
-// const userName = computed(() => user.value?.name)
+// Handle register button click
+const handleRegister = () => {
+  router.push('/home/register')
+}
+
+// Handle logout
+const handleLogout = () => {
+  $q.dialog({
+    title: 'Xác nhận',
+    message: 'Bạn có chắc chắn muốn đăng xuất?',
+    cancel: {
+      label: 'Hủy',
+      flat: true,
+    },
+    ok: {
+      label: 'Đăng xuất',
+      color: 'negative',
+    },
+  }).onOk(() => {
+    logout()
+    $q.notify({
+      type: 'positive',
+      message: 'Đăng xuất thành công',
+      position: 'top',
+    })
+    router.push('/')
+  })
+}
 </script>

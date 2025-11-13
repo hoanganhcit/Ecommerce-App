@@ -23,47 +23,46 @@
         <!-- Basic Information -->
         <div class="bg-white rounded-xl p-6 shadow-sm">
           <div class="text-xl font-bold text-gray-800 mb-4">Basic Information</div>
-
-          <div class="space-y-4">
+          <div>
             <q-input
               v-model="form.name"
               outlined
+              dense
               label="Product Name *"
               placeholder="Enter product name"
               :rules="[(val) => !!val || 'Product name is required']"
             />
 
-            <q-input
-              v-model="form.sku"
-              outlined
-              label="SKU *"
-              placeholder="Enter SKU code"
-              :rules="[(val) => !!val || 'SKU is required']"
-            />
+            <div class="grid sm:grid-cols-2 gap-4">
+              <q-input
+                v-model="form.sku"
+                outlined
+                dense
+                label="SKU"
+                placeholder="Enter SKU (e.g., SHIRT-001)"
+              />
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <q-select
                 v-model="form.category"
                 :options="categories"
                 outlined
+                dense
                 label="Category *"
-                :rules="[(val) => !!val || 'Category is required']"
-              />
-
-              <q-select
-                v-model="form.brand"
-                :options="brands"
-                outlined
-                label="Brand"
                 use-input
-                hide-selected
-                fill-input
-                input-debounce="0"
-                @new-value="createBrand"
+                input-debounce="300"
+                @filter="filterCategoryOptions"
+                :rules="[(val) => !!val || 'Category is required']"
               >
-                <template v-slot:no-option>
-                  <q-item>
-                    <q-item-section class="text-grey"> No results </q-item-section>
+                <template v-slot:option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section
+                      :style="{ paddingLeft: scope.opt.level ? `${scope.opt.level * 16}px` : '0' }"
+                    >
+                      <q-item-label>
+                        <span v-if="scope.opt.level">└─</span>
+                        {{ scope.opt.label }}
+                      </q-item-label>
+                    </q-item-section>
                   </q-item>
                 </template>
               </q-select>
@@ -89,6 +88,7 @@
             <q-input
               v-model.number="form.price"
               outlined
+              dense
               type="number"
               label="Price *"
               prefix="$"
@@ -96,38 +96,46 @@
             />
 
             <q-input
-              v-model.number="form.comparePrice"
+              v-model.number="form.originalPrice"
               outlined
+              dense
               type="number"
-              label="Compare at Price"
+              label="Original Price"
               prefix="$"
-              hint="Original price for discount display"
+              hint="Price before discount"
             />
 
             <q-input
-              v-model.number="form.cost"
+              v-model.number="form.discount"
               outlined
+              dense
               type="number"
-              label="Cost per Item"
-              prefix="$"
-              hint="Profit margin will be calculated"
+              label="Discount %"
+              suffix="%"
+              :rules="[(val) => (val >= 0 && val <= 100) || 'Discount must be 0-100']"
+              hint="Discount percentage (0-100)"
             />
 
             <q-input
               v-model.number="form.stock"
               outlined
+              dense
               type="number"
               label="Stock Quantity *"
               :rules="[(val) => val >= 0 || 'Stock must be 0 or greater']"
             />
           </div>
 
-          <div v-if="form.price && form.cost" class="mt-4 p-4 bg-blue-50 rounded-lg">
+          <div
+            v-if="form.price && form.originalPrice && form.discount"
+            class="mt-4 p-4 bg-blue-50 rounded-lg"
+          >
             <div class="text-sm text-gray-700">
-              <span class="font-semibold">Profit Margin:</span>
-              ${{ (form.price - form.cost).toFixed(2) }} ({{
-                (((form.price - form.cost) / form.price) * 100).toFixed(1)
-              }}%)
+              <span class="font-semibold">Final Price:</span>
+              ${{ (form.price * (1 - form.discount / 100)).toFixed(2) }}
+              <span class="text-gray-500 ml-2">
+                (Save ${{ (form.price * (form.discount / 100)).toFixed(2) }})
+              </span>
             </div>
           </div>
         </div>
@@ -137,97 +145,317 @@
           <div class="text-xl font-bold text-gray-800 mb-4">Product Images</div>
 
           <div class="space-y-4">
-            <q-input
-              v-model="form.image"
+            <q-file
+              v-model="imageFile"
               outlined
-              label="Main Image URL *"
-              placeholder="https://example.com/image.jpg"
-              :rules="[(val) => !!val || 'Main image is required']"
-            />
+              dense
+              label="Main Image *"
+              accept="image/*"
+              @update:model-value="handleMainImageUpload"
+              :rules="[(val) => !!form.thumbnail || 'Main image is required']"
+            >
+              <template v-slot:prepend>
+                <q-icon name="image" />
+              </template>
+            </q-file>
 
-            <div v-if="form.image" class="flex justify-center">
+            <div v-if="form.thumbnail" class="flex justify-center">
               <img
-                :src="form.image"
+                :src="form.thumbnail"
                 alt="Product preview"
                 class="w-48 h-48 object-cover rounded-lg shadow-md"
-                @error="imageError = true"
               />
             </div>
 
-            <q-input
-              v-model="additionalImageUrl"
+            <q-file
+              v-model="additionalImageFiles"
               outlined
-              label="Additional Image URL"
-              placeholder="https://example.com/image.jpg"
+              dense
+              label="Gallery Images"
+              accept="image/*"
+              multiple
+              @update:model-value="handleAdditionalImageUpload"
             >
-              <template v-slot:append>
-                <q-btn
-                  icon="add"
-                  flat
-                  round
-                  color="primary"
-                  @click="addImage"
-                  :disable="!additionalImageUrl"
-                />
+              <template v-slot:prepend>
+                <q-icon name="photo_library" />
               </template>
-            </q-input>
+            </q-file>
 
-            <div v-if="form.additionalImages.length" class="grid grid-cols-4 gap-4">
-              <div
-                v-for="(img, index) in form.additionalImages"
-                :key="index"
-                class="relative group"
-              >
-                <img
-                  :src="img"
-                  alt="Additional image"
-                  class="w-full h-24 object-cover rounded-lg"
-                />
+            <div v-if="form.images.length > 1" class="grid grid-cols-4 gap-4">
+              <div v-for="(img, index) in form.images.slice(1)" :key="index" class="relative group">
+                <img :src="img" alt="Gallery image" class="w-full h-24 object-cover rounded-lg" />
                 <q-btn
                   icon="close"
                   size="xs"
                   round
                   color="negative"
                   class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  @click="removeImage(index)"
+                  @click="removeImage(index + 1)"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <!-- SEO & Meta -->
+        <!-- Product Variants -->
         <div class="bg-white rounded-xl p-6 shadow-sm">
-          <div class="text-xl font-bold text-gray-800 mb-4">SEO & Meta Information</div>
+          <div class="text-xl font-bold text-gray-800 mb-4">Product Variants</div>
 
           <div class="space-y-4">
-            <q-input
-              v-model="form.metaTitle"
-              outlined
-              label="Meta Title"
-              placeholder="SEO title for search engines"
-              counter
-              maxlength="60"
-            />
+            <!-- Toggle for variants -->
+            <div class="p-4 bg-blue-50 rounded-lg">
+              <q-toggle
+                v-model="form.hasVariants"
+                label="This product has variants (Size & Color)"
+                color="primary"
+                class="font-medium"
+              />
+              <p class="text-sm text-gray-600 mt-2 ml-10">
+                Enable this to manage inventory by size and color combinations
+              </p>
+            </div>
 
-            <q-input
-              v-model="form.metaDescription"
-              outlined
-              type="textarea"
-              label="Meta Description"
-              placeholder="SEO description for search engines"
-              counter
-              maxlength="160"
-              rows="3"
-            />
+            <!-- Variants Management -->
+            <div v-if="form.hasVariants" class="space-y-4">
+              <!-- Select Multiple Sizes -->
+              <div
+                class="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200"
+              >
+                <div class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <q-icon name="straighten" color="primary" size="20px" />
+                  Select Sizes
+                </div>
+                <q-option-group
+                  v-model="selectedSizes"
+                  :options="sizeOptions.map((s) => ({ label: s, value: s }))"
+                  type="checkbox"
+                  inline
+                  color="primary"
+                  class="mb-3"
+                />
+                <q-btn
+                  v-if="selectedSizes.length > 0"
+                  icon="arrow_downward"
+                  label="Create Forms for Selected Sizes"
+                  color="primary"
+                  unelevated
+                  no-caps
+                  @click="createSizeForms"
+                  class="w-full !bg-gray-900 text-white hover:!bg-gray-700"
+                />
+              </div>
 
-            <q-input
-              v-model="form.tags"
-              outlined
-              label="Tags"
-              placeholder="Enter tags separated by commas"
-              hint="e.g., summer, casual, trending"
-            />
+              <!-- Forms for Each Selected Size -->
+              <div v-if="Object.keys(sizeFormsData).length > 0" class="space-y-4">
+                <div class="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <q-icon name="color_lens" color="primary" size="20px" />
+                  Add Colors for Each Size
+                </div>
+
+                <div
+                  v-for="size in Object.keys(sizeFormsData)"
+                  :key="size"
+                  class="p-4 bg-white rounded-lg border-2 border-blue-200"
+                >
+                  <!-- Size Header -->
+                  <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <q-badge color="primary" class="px-4 py-2 text-lg font-bold">
+                        Size {{ size }}
+                      </q-badge>
+                      <span class="text-sm text-gray-600">
+                        {{ sizeFormsData[size].length }} color(s)
+                      </span>
+                    </div>
+                    <q-btn
+                      icon="add_circle"
+                      label="Add Color"
+                      color="green"
+                      dense
+                      unelevated
+                      size="sm"
+                      @click="addColorRowToSize(size)"
+                    />
+                  </div>
+
+                  <!-- Color Rows -->
+                  <div class="space-y-2">
+                    <div
+                      v-for="(colorRow, index) in sizeFormsData[size]"
+                      :key="index"
+                      class="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded"
+                    >
+                      <div class="col-span-3">
+                        <q-input
+                          v-model="colorRow.name"
+                          outlined
+                          dense
+                          label="Color Name"
+                          placeholder="Navy Blue"
+                        />
+                      </div>
+                      <div class="col-span-3">
+                        <q-input
+                          v-model="colorRow.hex"
+                          outlined
+                          dense
+                          label="HEX Code"
+                          placeholder="#001f3f"
+                          :rules="[(val) => /^#[0-9A-Fa-f]{6}$/.test(val) || 'Invalid HEX']"
+                          class="!pb-0"
+                        >
+                          <template v-slot:append>
+                            <q-icon name="colorize" size="18px" class="cursor-pointer">
+                              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                                <q-color v-model="colorRow.hex" />
+                              </q-popup-proxy>
+                            </q-icon>
+                            <div
+                              class="w-6 h-6 rounded border border-gray-300 ml-2"
+                              :style="{ backgroundColor: colorRow.hex || '#ffffff' }"
+                            ></div>
+                          </template>
+                        </q-input>
+                      </div>
+                      <div class="col-span-2">
+                        <q-input
+                          v-model.number="colorRow.price"
+                          outlined
+                          dense
+                          type="number"
+                          label="Price"
+                          prefix="$"
+                          :placeholder="form.price?.toString() || '0'"
+                        />
+                      </div>
+                      <div class="col-span-2">
+                        <q-input
+                          v-model.number="colorRow.stock"
+                          outlined
+                          dense
+                          type="number"
+                          label="Stock"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div class="col-span-2 flex gap-1">
+                        <q-btn
+                          icon="content_copy"
+                          flat
+                          dense
+                          round
+                          color="blue"
+                          size="sm"
+                          @click="copyColorToAllSizes(colorRow)"
+                        >
+                          <q-tooltip>Copy to all sizes</q-tooltip>
+                        </q-btn>
+                        <q-btn
+                          icon="delete"
+                          flat
+                          dense
+                          round
+                          color="negative"
+                          size="sm"
+                          @click="removeColorRow(size, index)"
+                        >
+                          <q-tooltip>Remove</q-tooltip>
+                        </q-btn>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Add more color button inside -->
+                  <q-btn
+                    v-if="sizeFormsData[size].length === 0"
+                    icon="add"
+                    label="Add First Color"
+                    color="primary"
+                    outline
+                    dense
+                    class="w-full mt-2"
+                    @click="addColorRowToSize(size)"
+                  />
+                </div>
+
+                <!-- Save All Button -->
+                <q-btn
+                  icon="save"
+                  label="Save All Variants"
+                  color="positive"
+                  unelevated
+                  no-caps
+                  class="w-full"
+                  @click="saveAllVariants"
+                />
+              </div>
+
+              <!-- Variants List by Size -->
+              <div v-if="Object.keys(form.variants).length > 0" class="space-y-3">
+                <div class="text-sm font-semibold text-gray-700 mb-2">
+                  Variants Summary ({{ getTotalVariantsCount() }} items)
+                </div>
+
+                <div
+                  v-for="(sizeData, size) in form.variants"
+                  :key="size"
+                  class="p-4 bg-white border border-gray-200 rounded-lg"
+                >
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                      <q-badge color="primary" class="px-4 py-2 text-base font-bold">
+                        Size {{ size }}
+                      </q-badge>
+                      <span class="text-sm text-gray-600">
+                        {{ sizeData.colors.length }} color{{
+                          sizeData.colors.length > 1 ? 's' : ''
+                        }}
+                      </span>
+                      <span class="text-sm font-semibold text-blue-600">
+                        Total Stock: {{ getSizeStock(sizeData.colors) }}
+                      </span>
+                    </div>
+                    <q-btn
+                      icon="delete"
+                      flat
+                      dense
+                      no-caps
+                      color="negative"
+                      @click="removeSize(size)"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div
+                      v-for="(color, index) in sizeData.colors"
+                      :key="index"
+                      class="flex items-center gap-3 p-2 bg-gray-50 rounded border border-gray-200"
+                    >
+                      <div
+                        class="w-8 h-8 rounded border-2 border-gray-300"
+                        :style="{ backgroundColor: color.hex }"
+                      ></div>
+                      <div class="flex-1">
+                        <div class="font-medium text-sm">{{ color.name }}</div>
+                        <div class="text-xs text-gray-600">{{ color.hex }}</div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-sm font-semibold text-green-600">
+                          ${{ color.price || form.price || 0 }}
+                        </div>
+                        <div class="text-xs text-gray-600">Stock: {{ color.stock || 0 }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                <q-icon name="inventory_2" size="56px" color="grey-4" />
+                <p class="mt-3 font-medium">No variants added yet</p>
+                <p class="text-sm">Select a size above to start adding color variants</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -238,135 +466,92 @@
         <div class="bg-white rounded-xl p-6 shadow-sm">
           <div class="text-xl font-bold text-gray-800 mb-4">Status</div>
 
-          <q-select
-            v-model="form.status"
-            :options="statusOptions"
-            outlined
-            label="Product Status"
-          />
-
-          <div class="mt-4">
-            <q-toggle v-model="form.featured" label="Featured Product" color="primary" />
-          </div>
-        </div>
-
-        <!-- Product Variants -->
-        <div class="bg-white rounded-xl p-6 shadow-sm">
-          <div class="text-xl font-bold text-gray-800 mb-4">Variants</div>
-
           <div class="space-y-4">
-            <q-checkbox
-              v-model="form.hasVariants"
-              label="This product has variants"
-              color="primary"
-            />
+            <div>
+              <q-toggle v-model="form.isActive" label="Active Product" color="primary" />
+            </div>
 
-            <div v-if="form.hasVariants" class="space-y-3">
-              <q-select
-                v-model="selectedVariantType"
-                :options="variantTypes"
-                outlined
-                label="Add Variant Type"
-                dense
-              >
-                <template v-slot:append>
-                  <q-btn
-                    icon="add"
-                    flat
-                    round
-                    dense
-                    color="primary"
-                    @click="addVariant"
-                    :disable="!selectedVariantType"
-                  />
-                </template>
-              </q-select>
-
-              <div
-                v-for="(variant, index) in form.variants"
-                :key="index"
-                class="flex items-center gap-2"
-              >
-                <q-chip
-                  :label="variant"
-                  removable
-                  @remove="removeVariant(index)"
-                  color="primary"
-                  text-color="white"
-                />
-              </div>
+            <div>
+              <q-toggle v-model="form.isFeatured" label="Featured Product" color="secondary" />
             </div>
           </div>
         </div>
 
-        <!-- Shipping -->
+        <!-- Specifications -->
         <div class="bg-white rounded-xl p-6 shadow-sm">
-          <div class="text-xl font-bold text-gray-800 mb-4">Shipping</div>
+          <div class="text-xl font-bold text-gray-800 mb-4">Specifications</div>
 
           <div class="space-y-4">
             <q-input
-              v-model.number="form.weight"
+              v-model="form.specifications.material"
               outlined
-              type="number"
-              label="Weight"
-              suffix="kg"
               dense
+              label="Material"
+              placeholder="e.g., 100% Cotton"
             />
 
-            <div class="grid grid-cols-3 gap-2">
-              <q-input
-                v-model.number="form.dimensions.length"
-                outlined
-                type="number"
-                label="Length"
-                suffix="cm"
-                dense
-              />
-              <q-input
-                v-model.number="form.dimensions.width"
-                outlined
-                type="number"
-                label="Width"
-                suffix="cm"
-                dense
-              />
-              <q-input
-                v-model.number="form.dimensions.height"
-                outlined
-                type="number"
-                label="Height"
-                suffix="cm"
-                dense
-              />
-            </div>
+            <q-input
+              v-model="form.specifications.origin"
+              outlined
+              dense
+              label="Origin"
+              placeholder="e.g., Vietnam"
+            />
+
+            <q-input
+              v-model="form.specifications.weight"
+              outlined
+              dense
+              label="Weight"
+              placeholder="e.g., 0.5kg"
+            />
+          </div>
+        </div>
+
+        <!-- Collections & Tags -->
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+          <div class="text-xl font-bold text-gray-800 mb-4">Collections & Tags</div>
+
+          <div class="space-y-4">
+            <q-input
+              v-model="form.collections"
+              outlined
+              dense
+              label="Collections"
+              placeholder="Enter collections separated by commas"
+              hint="e.g., summer-collection, new-arrivals"
+            />
+
+            <q-input
+              v-model="form.tags"
+              outlined
+              dense
+              label="Tags"
+              placeholder="Enter tags separated by commas"
+              hint="e.g., summer, casual, trending"
+            />
           </div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="bg-white rounded-xl p-6 shadow-sm">
-          <div class="space-y-3">
+        <div class="">
+          <div class="grid gap-4 grid-cols-2">
             <q-btn
               :label="isEditMode ? 'Update Product' : 'Save Product'"
               :icon="isEditMode ? 'update' : 'save'"
               color="primary"
               unelevated
+              no-caps
               class="w-full"
               @click="saveProduct"
             />
             <q-btn
-              label="Save as Draft"
-              icon="draft"
-              outline
-              color="primary"
-              class="w-full"
-              @click="saveDraft"
-            />
-            <q-btn
               label="Cancel"
               outline
+              no-caps
               color="grey"
               class="w-full"
-              @click="$router.push('/products')"
+              @click="$router.push('/admin/products')"
             />
           </div>
         </div>
@@ -379,6 +564,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -393,235 +579,476 @@ const form = ref({
   name: '',
   sku: '',
   category: null,
-  brand: null,
   description: '',
   price: null,
-  comparePrice: null,
-  cost: null,
+  originalPrice: null,
+  discount: 0,
   stock: 0,
-  image: '',
-  additionalImages: [],
-  metaTitle: '',
-  metaDescription: '',
-  tags: '',
-  status: 'Active',
-  featured: false,
+  images: [],
+  thumbnail: '',
   hasVariants: false,
-  variants: [],
-  weight: null,
-  dimensions: {
-    length: null,
-    width: null,
-    height: null,
+  variants: {}, // Change to object: { size: { colors: [...] } }
+  collections: '',
+  tags: '',
+  isFeatured: false,
+  isActive: true,
+  specifications: {
+    material: '',
+    origin: '',
+    weight: '',
   },
 })
 
-const additionalImageUrl = ref('')
-const selectedVariantType = ref(null)
-const imageError = ref(false)
+const imageFile = ref(null)
+const additionalImageFiles = ref([])
 
-// Sample products data (in real app, this would come from API/store)
-const sampleProducts = [
-  {
-    id: 1,
-    name: 'Classic Denim Jacket',
-    sku: 'CDJ-001',
-    category: "Men's Wear",
-    brand: "Levi's",
-    description: '<p>A timeless classic denim jacket perfect for any casual occasion.</p>',
-    price: 89.99,
-    comparePrice: 120.0,
-    cost: 45.0,
-    stock: 145,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=100&h=100&fit=crop',
-    additionalImages: [
-      'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=300&h=300&fit=crop',
-    ],
-    metaTitle: "Classic Denim Jacket - Men's Fashion",
-    metaDescription: 'Shop our classic denim jacket - perfect for casual style',
-    tags: 'denim, jacket, casual, men',
-    featured: true,
-    hasVariants: true,
-    variants: ['Size - Medium', 'Size - Large', 'Color - Blue'],
-    weight: 0.8,
-    dimensions: {
-      length: 60,
-      width: 50,
-      height: 5,
-    },
-  },
-  {
-    id: 2,
-    name: 'Summer Floral Dress',
-    sku: 'SFD-002',
-    category: "Women's Wear",
-    brand: 'Zara',
-    description: '<p>Beautiful floral dress perfect for summer occasions.</p>',
-    price: 129.99,
-    comparePrice: 159.99,
-    cost: 60.0,
-    stock: 87,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=100&h=100&fit=crop',
-    additionalImages: [],
-    metaTitle: 'Summer Floral Dress',
-    metaDescription: 'Elegant summer floral dress for women',
-    tags: 'dress, floral, summer, women',
-    featured: false,
-    hasVariants: false,
-    variants: [],
-    weight: 0.3,
-    dimensions: {
-      length: 90,
-      width: 40,
-      height: 2,
-    },
-  },
-]
+// Size and color options
+const sizeOptions = ref([
+  'XS',
+  'S',
+  'M',
+  'L',
+  'XL',
+  'XXL',
+  '38',
+  '39',
+  '40',
+  '41',
+  '42',
+  '43',
+  '44',
+])
+
+// Selected sizes for multi-select
+const selectedSizes = ref([])
+
+// Forms data for each size: { size: [{ name, hex, price, stock }] }
+const sizeFormsData = ref({})
 
 // Options
-const categories = ref([
-  "Men's Wear",
-  "Women's Wear",
-  'Footwear',
-  'Accessories',
-  'Basics',
-  'Outerwear',
-  'Sportswear',
-  'Jewelry',
-])
-
-const brands = ref(['Nike', 'Adidas', 'Zara', 'H&M', 'Uniqlo', 'Gucci', 'Prada', "Levi's"])
-
-const statusOptions = ref(['Active', 'Draft', 'Inactive'])
-
-const variantTypes = ref([
-  'Size - Small',
-  'Size - Medium',
-  'Size - Large',
-  'Size - XL',
-  'Color - Black',
-  'Color - White',
-  'Color - Blue',
-  'Color - Red',
-])
+const categories = ref([])
+const allCategoryOptions = ref([])
 
 // Load product data if in edit mode
-onMounted(() => {
+onMounted(async () => {
+  // Fetch categories
+  await fetchCategories()
+
   if (route.params.id) {
     isEditMode.value = true
-    productId.value = parseInt(route.params.id)
-    loadProductData(productId.value)
+    productId.value = route.params.id
+    await loadProductData(productId.value)
   }
 })
 
-const loadProductData = (id) => {
-  // In real app, fetch from API
-  const product = sampleProducts.find((p) => p.id === id)
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/categories')
+    if (response.data.success) {
+      const buildHierarchy = (parentId = null, level = 0) => {
+        return response.data.data
+          .filter((c) => {
+            if (parentId === null) return !c.parent
+            return c.parent?._id === parentId || c.parent === parentId
+          })
+          .flatMap((c) => [
+            { label: c.name, value: c._id, level },
+            ...buildHierarchy(c._id, level + 1),
+          ])
+      }
 
-  if (product) {
-    form.value = {
-      name: product.name,
-      sku: product.sku,
-      category: product.category,
-      brand: product.brand,
-      description: product.description,
-      price: product.price,
-      comparePrice: product.comparePrice,
-      cost: product.cost,
-      stock: product.stock,
-      image: product.image,
-      additionalImages: [...product.additionalImages],
-      metaTitle: product.metaTitle,
-      metaDescription: product.metaDescription,
-      tags: product.tags,
-      status: product.status,
-      featured: product.featured,
-      hasVariants: product.hasVariants,
-      variants: [...product.variants],
-      weight: product.weight,
-      dimensions: { ...product.dimensions },
+      allCategoryOptions.value = buildHierarchy()
+      categories.value = [...allCategoryOptions.value]
     }
+  } catch (error) {
+    console.error('Fetch categories error:', error)
+  }
+}
 
-    $q.notify({
-      type: 'info',
-      message: `Loaded product: ${product.name}`,
-      position: 'top',
-      timeout: 1500,
+// Filter function for categories
+const filterCategoryOptions = (val, update) => {
+  update(() => {
+    if (val === '') {
+      categories.value = [...allCategoryOptions.value]
+    } else {
+      const needle = val.toLowerCase()
+      categories.value = allCategoryOptions.value.filter(
+        (v) => v.label.toLowerCase().indexOf(needle) > -1,
+      )
+    }
+  })
+}
+
+const loadProductData = async (id) => {
+  try {
+    const token = localStorage.getItem('adminToken')
+    const response = await axios.get(`http://localhost:5000/api/products/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
-  } else {
+
+    if (response.data.success) {
+      const product = response.data.data
+
+      // Build variants object from sizes and colors
+      const variantsObj = {}
+      if (
+        product.sizes &&
+        product.sizes.length > 0 &&
+        product.colors &&
+        product.colors.length > 0
+      ) {
+        product.sizes.forEach((size) => {
+          variantsObj[size] = {
+            colors: product.colors.map((color) => ({
+              ...color,
+              price: product.price || 0,
+              stock: 0, // Backend doesn't store individual stock, default to 0
+            })),
+          }
+        })
+      }
+
+      form.value = {
+        name: product.name,
+        sku: product.sku || '',
+        category: product.category?._id || product.category || null,
+        description: product.description || '',
+        price: product.price,
+        originalPrice: product.originalPrice || null,
+        discount: product.discount || 0,
+        stock: product.stock || 0,
+        images: product.images || [],
+        thumbnail: product.thumbnail || product.images?.[0] || '',
+        hasVariants: Object.keys(variantsObj).length > 0,
+        variants: variantsObj,
+        collections: product.collections?.join(', ') || '',
+        tags: product.tags?.join(', ') || '',
+        isFeatured: product.isFeatured || false,
+        isActive: product.isActive !== false,
+        specifications: {
+          material: product.specifications?.material || '',
+          origin: product.specifications?.origin || '',
+          weight: product.specifications?.weight || '',
+        },
+      }
+
+      // Find matching category option to display name instead of ID
+      if (product.category?._id) {
+        const categoryOption = allCategoryOptions.value.find(
+          (opt) => opt.value === product.category._id,
+        )
+        if (categoryOption) {
+          form.value.category = categoryOption
+        }
+      }
+
+      // Populate sizeFormsData and selectedSizes for editing
+      if (form.value.hasVariants && Object.keys(form.value.variants).length > 0) {
+        selectedSizes.value = Object.keys(form.value.variants)
+        sizeFormsData.value = {}
+        Object.entries(form.value.variants).forEach(([size, sizeData]) => {
+          sizeFormsData.value[size] = sizeData.colors.map((c) => ({ ...c }))
+        })
+      }
+
+      $q.notify({
+        type: 'info',
+        message: `Loaded product: ${product.name}`,
+        position: 'top',
+        timeout: 1500,
+      })
+    }
+  } catch (error) {
+    console.error('Load product error:', error)
     $q.notify({
       type: 'negative',
-      message: 'Product not found',
+      message: error.response?.data?.message || 'Failed to load product',
       position: 'top',
     })
-    router.push('/products')
+    router.push('/admin/products')
   }
 }
 
-// Methods
-const createBrand = (val, done) => {
-  if (val.length > 0) {
-    if (!brands.value.includes(val)) {
-      brands.value.push(val)
+// Handle image upload
+const handleMainImageUpload = (file) => {
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      form.value.thumbnail = e.target.result
+      if (!form.value.images.includes(e.target.result)) {
+        form.value.images.unshift(e.target.result)
+      }
     }
-    done(val, 'toggle')
+    reader.readAsDataURL(file)
   }
 }
 
-const addImage = () => {
-  if (additionalImageUrl.value) {
-    form.value.additionalImages.push(additionalImageUrl.value)
-    additionalImageUrl.value = ''
-  }
+const handleAdditionalImageUpload = (files) => {
+  Array.from(files).forEach((file) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      if (!form.value.images.includes(e.target.result)) {
+        form.value.images.push(e.target.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 const removeImage = (index) => {
-  form.value.additionalImages.splice(index, 1)
-}
-
-const addVariant = () => {
-  if (selectedVariantType.value && !form.value.variants.includes(selectedVariantType.value)) {
-    form.value.variants.push(selectedVariantType.value)
-    selectedVariantType.value = null
+  form.value.images.splice(index, 1)
+  if (index === 0 && form.value.images.length > 0) {
+    form.value.thumbnail = form.value.images[0]
+  } else if (form.value.images.length === 0) {
+    form.value.thumbnail = ''
   }
 }
 
-const removeVariant = (index) => {
-  form.value.variants.splice(index, 1)
+// Handle variants - New multi-size functions
+const createSizeForms = () => {
+  const newForms = {}
+  selectedSizes.value.forEach((size) => {
+    if (!sizeFormsData.value[size]) {
+      newForms[size] = [
+        {
+          name: '',
+          hex: '#000000',
+          price: form.value.price || null,
+          stock: 0,
+        },
+      ]
+    } else {
+      newForms[size] = sizeFormsData.value[size]
+    }
+  })
+  sizeFormsData.value = newForms
+  $q.notify({
+    type: 'positive',
+    message: `Forms created for ${selectedSizes.value.length} size(s)`,
+    position: 'top',
+  })
 }
 
-const saveProduct = () => {
-  if (!validateForm()) return
+const addColorRowToSize = (size) => {
+  if (!sizeFormsData.value[size]) {
+    sizeFormsData.value[size] = []
+  }
+  sizeFormsData.value[size].push({
+    name: '',
+    hex: '#000000',
+    price: form.value.price || null,
+    stock: 0,
+  })
+}
 
-  // Simulate saving
-  const message = isEditMode.value ? 'Product updated successfully!' : 'Product saved successfully!'
+const removeColorRow = (size, index) => {
+  sizeFormsData.value[size].splice(index, 1)
+}
+
+const copyColorToAllSizes = (colorRow) => {
+  Object.keys(sizeFormsData.value).forEach((size) => {
+    const exists = sizeFormsData.value[size].find((c) => c.hex === colorRow.hex)
+    if (!exists) {
+      sizeFormsData.value[size].push({ ...colorRow })
+    }
+  })
+  $q.notify({
+    type: 'positive',
+    message: `Color copied to all sizes`,
+    position: 'top',
+  })
+}
+
+const saveAllVariants = () => {
+  // Validate all forms
+  let hasError = false
+  Object.entries(sizeFormsData.value).forEach(([, colors]) => {
+    colors.forEach((color) => {
+      if (!color.name || !color.hex || !/^#[0-9A-Fa-f]{6}$/.test(color.hex)) {
+        hasError = true
+      }
+    })
+  })
+
+  if (hasError) {
+    $q.notify({
+      type: 'negative',
+      message: 'Please fill all color fields with valid data',
+      position: 'top',
+    })
+    return
+  }
+
+  // Save to form.variants
+  form.value.variants = {}
+  Object.entries(sizeFormsData.value).forEach(([size, colors]) => {
+    form.value.variants[size] = {
+      colors: colors.map((c) => ({
+        name: c.name,
+        hex: c.hex,
+        price: c.price || form.value.price || 0,
+        stock: c.stock || 0,
+      })),
+    }
+  })
 
   $q.notify({
     type: 'positive',
-    message: message,
+    message: `All variants saved! Total: ${getTotalVariantsCount()} items`,
     position: 'top',
+    timeout: 2000,
   })
-
-  setTimeout(() => {
-    router.push('/products')
-  }, 1000)
 }
 
-const saveDraft = () => {
-  form.value.status = 'Draft'
-  saveProduct()
+const removeSize = (size) => {
+  delete form.value.variants[size]
+  delete sizeFormsData.value[size]
+  selectedSizes.value = selectedSizes.value.filter((s) => s !== size)
+  $q.notify({
+    type: 'info',
+    message: `Size ${size} removed`,
+    position: 'top',
+  })
+}
+
+const getSizeStock = (colors) => {
+  return colors.reduce((sum, color) => sum + (color.stock || 0), 0)
+}
+
+const getTotalVariantsCount = () => {
+  let count = 0
+  Object.values(form.value.variants).forEach((sizeData) => {
+    count += sizeData.colors.length
+  })
+  return count
+}
+
+const saveProduct = async () => {
+  if (!validateForm()) return
+
+  try {
+    const token = localStorage.getItem('adminToken')
+
+    // Prepare collections and tags arrays
+    const collections = form.value.collections
+      ? form.value.collections
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : []
+    const tags = form.value.tags
+      ? form.value.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : []
+
+    // Extract unique sizes and colors from variants object
+    let sizes = []
+    let colors = []
+    let totalStock = form.value.stock || 0
+
+    if (form.value.hasVariants && Object.keys(form.value.variants).length > 0) {
+      sizes = Object.keys(form.value.variants)
+      const colorMap = new Map()
+
+      // Calculate total stock and collect unique colors
+      Object.values(form.value.variants).forEach((sizeData) => {
+        sizeData.colors.forEach((color) => {
+          totalStock += color.stock || 0
+          if (!colorMap.has(color.hex)) {
+            colorMap.set(color.hex, {
+              name: color.name,
+              hex: color.hex,
+            })
+          }
+        })
+      })
+
+      colors = Array.from(colorMap.values())
+    }
+
+    // Prepare product data matching Product model
+    const productData = {
+      name: form.value.name,
+      sku: form.value.sku || undefined,
+      description: form.value.description,
+      price: form.value.price,
+      originalPrice: form.value.originalPrice || null,
+      discount: form.value.discount || 0,
+      category:
+        typeof form.value.category === 'object' ? form.value.category.value : form.value.category, // Extract value from object or use as-is
+      images: form.value.images,
+      thumbnail: form.value.thumbnail || form.value.images[0],
+      sizes,
+      colors,
+      collections,
+      tags,
+      stock: form.value.hasVariants ? totalStock : form.value.stock || 0,
+      isFeatured: form.value.isFeatured,
+      isActive: form.value.isActive,
+      specifications: {
+        material: form.value.specifications.material || '',
+        origin: form.value.specifications.origin || '',
+        weight: form.value.specifications.weight || '',
+      },
+    }
+
+    console.log('Product Data to save:', productData)
+    console.log('Category value:', form.value.category)
+    console.log('Category ID:', productData.category)
+
+    let response
+    if (isEditMode.value) {
+      // Update existing product
+      response = await axios.put(
+        `http://localhost:5000/api/products/${productId.value}`,
+        productData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+    } else {
+      // Create new product
+      response = await axios.post('http://localhost:5000/api/products', productData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    }
+
+    if (response.data.success) {
+      const message = isEditMode.value
+        ? 'Product updated successfully!'
+        : 'Product created successfully!'
+
+      $q.notify({
+        type: 'positive',
+        message: message,
+        position: 'top',
+      })
+
+      setTimeout(() => {
+        router.push('/admin/products')
+      }, 1000)
+    }
+  } catch (error) {
+    console.error('Save product error:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Failed to save product',
+      position: 'top',
+    })
+  }
 }
 
 const validateForm = () => {
   if (!form.value.name) {
     $q.notify({ type: 'negative', message: 'Product name is required', position: 'top' })
-    return false
-  }
-  if (!form.value.sku) {
-    $q.notify({ type: 'negative', message: 'SKU is required', position: 'top' })
     return false
   }
   if (!form.value.category) {
@@ -632,7 +1059,7 @@ const validateForm = () => {
     $q.notify({ type: 'negative', message: 'Valid price is required', position: 'top' })
     return false
   }
-  if (!form.value.image) {
+  if (!form.value.thumbnail) {
     $q.notify({ type: 'negative', message: 'Main image is required', position: 'top' })
     return false
   }

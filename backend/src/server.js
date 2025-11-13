@@ -16,7 +16,12 @@ connectDB()
 const app = express()
 
 // Middleware
-app.use(helmet()) // Security headers
+// Configure helmet to allow cross-origin resource sharing for images
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+)
 app.use(compression()) // Compress responses
 app.use(morgan('dev')) // Logging
 
@@ -32,8 +37,8 @@ app.use(cors(corsOptions))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Static files
-app.use('/uploads', express.static('uploads'))
+// Static files - must be after CORS
+app.use('/uploads', express.static('public/uploads'))
 
 // Routes
 app.get('/', (req, res) => {
@@ -49,12 +54,14 @@ import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
 import orderRoutes from './routes/orders.js'
 import customerRoutes from './routes/customers.js'
+import categoryRoutes from './routes/categories.js'
 
 // Use routes
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/customers', customerRoutes)
+app.use('/api/categories', categoryRoutes)
 
 // Error handling middleware
 app.use((err, req, res) => {

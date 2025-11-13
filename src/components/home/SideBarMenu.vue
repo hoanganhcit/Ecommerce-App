@@ -48,7 +48,6 @@
       <router-link
         to="/login"
         class="flex flex-col items-center justify-center py-4 px-2 text-gray-400 transition-all group"
-        active-class="!text-white !bg-gray-800"
       >
         <i class="fal fa-user text-xl mb-1"></i>
       </router-link>

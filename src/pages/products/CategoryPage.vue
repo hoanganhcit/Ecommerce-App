@@ -70,34 +70,26 @@
     </div>
 
     <!-- Categories Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div
         v-for="category in categories"
         :key="category.id"
         class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
       >
-        <!-- Category Image -->
-        <div class="relative h-48 bg-gradient-to-br" :class="category.gradient">
-          <img
-            v-if="category.image"
-            :src="category.image"
-            :alt="category.name"
-            class="w-full h-full object-cover"
-          />
+        <!-- Category Header -->
+        <div class="relative h-32 bg-gradient-to-br from-blue-500 to-blue-600">
           <div class="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-            <q-icon :name="category.icon" size="64px" class="text-white" />
+            <q-icon :name="category.icon" size="48px" class="text-white" />
           </div>
           <!-- Status Badge -->
           <div class="absolute top-3 right-3">
             <span
               :class="[
                 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                category.status === 'Active'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800',
+                category.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
               ]"
             >
-              {{ category.status }}
+              {{ category.active ? 'Active' : 'Inactive' }}
             </span>
           </div>
         </div>
@@ -107,7 +99,7 @@
           <div class="flex items-start justify-between mb-3">
             <div class="flex-1">
               <div class="text-xl font-bold text-gray-900 mb-1">{{ category.name }}</div>
-              <p class="text-sm text-gray-600">{{ category.description }}</p>
+              <p class="text-sm text-gray-600">{{ category.description || 'No description' }}</p>
             </div>
           </div>
 
@@ -118,10 +110,13 @@
               <p class="text-2xl font-bold text-blue-600">{{ category.productCount }}</p>
             </div>
             <div>
-              <p class="text-xs text-gray-600 mb-1">Revenue</p>
-              <p class="text-2xl font-bold text-green-600">
-                ${{ (category.revenue / 1000).toFixed(1) }}k
+              <p class="text-xs text-gray-600 mb-1">Parent Categories</p>
+
+              <p v-if="category.parentName" class="text-xs text-blue-600 mt-1">
+                <q-icon name="subdirectory_arrow_right" size="14px" />
+                Parent: {{ category.parentName }}
               </p>
+              <p v-else class="text-xs mt-1">None(Top Level)</p>
             </div>
           </div>
 
@@ -135,15 +130,6 @@
               size="sm"
               class="flex-1"
               @click="editCategory(category)"
-            />
-            <q-btn
-              label="View"
-              icon="visibility"
-              outline
-              color="info"
-              size="sm"
-              class="flex-1"
-              @click="viewCategory(category)"
             />
             <q-btn
               icon="delete"
@@ -202,37 +188,52 @@
             </q-select>
 
             <q-select
-              v-model="categoryForm.gradient"
-              :options="gradientOptions"
+              v-model="categoryForm.parent"
+              :options="parentCategories"
               outlined
-              label="Color Theme"
+              label="Parent Category"
               emit-value
               map-options
+              use-input
+              input-debounce="300"
+              @filter="filterParentCategories"
+              hint="Select parent category to create a subcategory"
             >
               <template v-slot:option="scope">
                 <q-item v-bind="scope.itemProps">
-                  <q-item-section avatar>
-                    <div class="w-8 h-8 rounded" :class="scope.opt.value"></div>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                  <q-item-section
+                    :style="{ paddingLeft: scope.opt.level ? `${scope.opt.level * 20}px` : '0' }"
+                  >
+                    <q-item-label>
+                      <span v-if="scope.opt.level">└─</span>
+                      {{ scope.opt.label }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </template>
             </q-select>
 
             <q-input
-              v-model="categoryForm.image"
+              v-model="categoryForm.order"
               outlined
-              label="Image URL"
-              placeholder="https://example.com/image.jpg"
+              type="number"
+              label="Display Order"
+              hint="Display order (lower numbers appear first)"
+              :rules="[
+                (val) => val >= 1 || 'Order must be at least 1',
+                (val) => Number.isInteger(Number(val)) || 'Order must be a whole number',
+              ]"
+              min="1"
+              step="1"
             />
 
             <q-select
-              v-model="categoryForm.status"
+              v-model="categoryForm.active"
               :options="statusOptions"
               outlined
               label="Status"
+              emit-value
+              map-options
             />
           </div>
         </q-card-section>
@@ -247,198 +248,187 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 const $q = useQuasar()
 
 // Data
 const showAddDialog = ref(false)
 const editMode = ref(false)
+const isLoading = ref(false)
+const categories = ref([])
 
 const categoryForm = ref({
   name: '',
   description: '',
+  slug: '',
   icon: 'category',
-  gradient: 'from-blue-500 to-blue-600',
-  image: '',
-  status: 'Active',
+  parent: null,
+  active: true,
+  order: 1,
 })
 
-const categories = ref([
-  {
-    id: 1,
-    name: "Men's Wear",
-    description: 'Stylish clothing for men',
-    icon: 'man',
-    gradient: 'from-blue-500 to-blue-600',
-    productCount: 145,
-    revenue: 45800,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?w=400&h=300&fit=crop',
-  },
-  {
-    id: 2,
-    name: "Women's Wear",
-    description: 'Elegant fashion for women',
-    icon: 'woman',
-    gradient: 'from-pink-500 to-pink-600',
-    productCount: 187,
-    revenue: 62300,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 3,
-    name: 'Footwear',
-    description: 'Shoes and boots for all occasions',
-    icon: 'styler',
-    gradient: 'from-amber-500 to-amber-600',
-    productCount: 98,
-    revenue: 38900,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=300&fit=crop',
-  },
-  {
-    id: 4,
-    name: 'Accessories',
-    description: 'Complete your look with accessories',
-    icon: 'watch',
-    gradient: 'from-purple-500 to-purple-600',
-    productCount: 76,
-    revenue: 24500,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1523779917675-b6ed3a42a561?w=400&h=300&fit=crop',
-  },
-  {
-    id: 5,
-    name: 'Basics',
-    description: 'Essential everyday wear',
-    icon: 'checkroom',
-    gradient: 'from-gray-500 to-gray-600',
-    productCount: 132,
-    revenue: 31200,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 6,
-    name: 'Outerwear',
-    description: 'Jackets and coats for all seasons',
-    icon: 'ac_unit',
-    gradient: 'from-slate-500 to-slate-600',
-    productCount: 54,
-    revenue: 42700,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=300&fit=crop',
-  },
-  {
-    id: 7,
-    name: 'Sportswear',
-    description: 'Athletic and activewear',
-    icon: 'directions_run',
-    gradient: 'from-green-500 to-green-600',
-    productCount: 89,
-    revenue: 35600,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400&h=300&fit=crop',
-  },
-  {
-    id: 8,
-    name: 'Jewelry',
-    description: 'Fine jewelry and accessories',
-    icon: 'diamond',
-    gradient: 'from-yellow-500 to-yellow-600',
-    productCount: 43,
-    revenue: 52100,
-    status: 'Active',
-    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=300&fit=crop',
-  },
-  {
-    id: 9,
-    name: 'Kids Wear',
-    description: 'Clothing for children',
-    icon: 'child_care',
-    gradient: 'from-teal-500 to-teal-600',
-    productCount: 67,
-    revenue: 28400,
-    status: 'Inactive',
-    image: 'https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?w=400&h=300&fit=crop',
-  },
+const statusOptions = ref([
+  { label: 'Active', value: true },
+  { label: 'Inactive', value: false },
 ])
-
-const statusOptions = ref(['Active', 'Inactive'])
 
 const iconOptions = ref([
   { label: 'Category', value: 'category' },
   { label: 'Man', value: 'man' },
   { label: 'Woman', value: 'woman' },
-  { label: 'Shoes', value: 'styler' },
   { label: 'Watch', value: 'watch' },
   { label: 'Clothing', value: 'checkroom' },
   { label: 'Winter', value: 'ac_unit' },
   { label: 'Sports', value: 'directions_run' },
   { label: 'Diamond', value: 'diamond' },
   { label: 'Kids', value: 'child_care' },
-])
-
-const gradientOptions = ref([
-  { label: 'Blue', value: 'from-blue-500 to-blue-600' },
-  { label: 'Pink', value: 'from-pink-500 to-pink-600' },
-  { label: 'Purple', value: 'from-purple-500 to-purple-600' },
-  { label: 'Green', value: 'from-green-500 to-green-600' },
-  { label: 'Amber', value: 'from-amber-500 to-amber-600' },
-  { label: 'Red', value: 'from-red-500 to-red-600' },
-  { label: 'Teal', value: 'from-teal-500 to-teal-600' },
-  { label: 'Indigo', value: 'from-indigo-500 to-indigo-600' },
-  { label: 'Yellow', value: 'from-yellow-500 to-yellow-600' },
-  { label: 'Gray', value: 'from-gray-500 to-gray-600' },
+  { label: 'Bag', value: 'shopping_bag' },
+  { label: 'Jewelry', value: 'diamond' },
 ])
 
 // Computed
-const activeCategories = computed(
-  () => categories.value.filter((c) => c.status === 'Active').length,
+const activeCategories = computed(() => categories.value.filter((c) => c.active).length)
+const totalProducts = computed(() =>
+  categories.value.reduce((sum, c) => sum + (c.productCount || 0), 0),
 )
-const totalProducts = computed(() => categories.value.reduce((sum, c) => sum + c.productCount, 0))
 const avgProductsPerCategory = computed(() =>
-  Math.round(totalProducts.value / categories.value.length),
+  categories.value.length > 0 ? Math.round(totalProducts.value / categories.value.length) : 0,
 )
+
+// Parent categories with hierarchy
+const allParentCategories = computed(() => {
+  const buildHierarchy = (parentId = null, level = 0) => {
+    return categories.value
+      .filter((c) => {
+        if (parentId === null) return !c.parent
+        return c.parent === parentId
+      })
+      .flatMap((c) => [{ label: c.name, value: c.id, level }, ...buildHierarchy(c.id, level + 1)])
+  }
+
+  return [{ label: 'None (Top Level)', value: null, level: 0 }, ...buildHierarchy()]
+})
+
+const parentCategories = ref([...allParentCategories.value])
+
+// Filter function for parent categories
+const filterParentCategories = (val, update) => {
+  update(() => {
+    if (val === '') {
+      parentCategories.value = [...allParentCategories.value]
+    } else {
+      const needle = val.toLowerCase()
+      parentCategories.value = allParentCategories.value.filter(
+        (v) => v.label.toLowerCase().indexOf(needle) > -1,
+      )
+    }
+  })
+}
+
+// Fetch categories from API
+const fetchCategories = async () => {
+  try {
+    isLoading.value = true
+    const response = await axios.get('http://localhost:5000/api/categories')
+
+    console.log('Fetch categories response:', response.data)
+
+    // Backend returns { success: true, data: [...] }
+    const categoriesData = response.data.data || response.data
+
+    console.log('Categories data:', categoriesData)
+
+    if (!Array.isArray(categoriesData)) {
+      console.error('Categories data is not an array:', categoriesData)
+      throw new Error('Invalid data format')
+    }
+
+    categories.value = categoriesData.map((category) => ({
+      id: category._id,
+      name: category.name,
+      description: category.description || '',
+      slug: category.slug,
+      icon: category.icon || 'category',
+      parent: category.parent?._id || category.parent || null,
+      parentName: category.parent?.name || null,
+      productCount: category.productCount || 0,
+      revenue: category.revenue || 0,
+      active: category.active !== false,
+      order: category.order || 0,
+    }))
+
+    console.log('Mapped categories:', categories.value)
+
+    // Update parent categories dropdown
+    parentCategories.value = [...allParentCategories.value]
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Failed to load categories',
+      position: 'top',
+    })
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchCategories()
+})
 
 // Methods
 const editCategory = (category) => {
   editMode.value = true
-  categoryForm.value = { ...category }
+  categoryForm.value = {
+    id: category.id,
+    name: category.name,
+    description: category.description,
+    slug: category.slug,
+    icon: category.icon,
+    parent: category.parent || null,
+    active: category.active,
+    order: category.order,
+  }
   showAddDialog.value = true
-}
-
-const viewCategory = (category) => {
-  $q.notify({
-    type: 'info',
-    message: `Viewing category: ${category.name}`,
-    position: 'top',
-  })
 }
 
 const deleteCategory = (category) => {
   $q.dialog({
     title: 'Confirm Delete',
-    message: `Are you sure you want to delete "${category.name}"? This will affect ${category.productCount} products.`,
+    message: `Are you sure you want to delete "${category.name}"?`,
     cancel: true,
     persistent: true,
-  }).onOk(() => {
-    const index = categories.value.findIndex((c) => c.id === category.id)
-    if (index > -1) {
-      categories.value.splice(index, 1)
+  }).onOk(async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      await axios.delete(`http://localhost:5000/api/categories/${category.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
       $q.notify({
         type: 'positive',
         message: 'Category deleted successfully',
+        position: 'top',
+      })
+
+      fetchCategories()
+    } catch (error) {
+      console.error('Error deleting category:', error)
+      $q.notify({
+        type: 'negative',
+        message: error.response?.data?.message || 'Failed to delete category',
         position: 'top',
       })
     }
   })
 }
 
-const saveCategory = () => {
+const saveCategory = async () => {
   if (!categoryForm.value.name) {
     $q.notify({
       type: 'negative',
@@ -448,31 +438,76 @@ const saveCategory = () => {
     return
   }
 
-  if (editMode.value) {
-    const index = categories.value.findIndex((c) => c.id === categoryForm.value.id)
-    if (index > -1) {
-      categories.value[index] = { ...categoryForm.value }
+  try {
+    const token = localStorage.getItem('adminToken')
+
+    if (!token) {
+      $q.notify({
+        type: 'warning',
+        message: 'Please login again to continue',
+        position: 'top',
+      })
+      return
+    }
+
+    const categoryData = {
+      name: categoryForm.value.name,
+      description: categoryForm.value.description,
+      slug: categoryForm.value.slug || categoryForm.value.name.toLowerCase().replace(/\s+/g, '-'),
+      icon: categoryForm.value.icon,
+      parent: categoryForm.value.parent || null,
+      active: categoryForm.value.active,
+      order: Math.max(1, categoryForm.value.order || 1),
+    }
+
+    console.log('Saving category:', { editMode: editMode.value, categoryData })
+
+    if (editMode.value) {
+      await axios.put(
+        `http://localhost:5000/api/categories/${categoryForm.value.id}`,
+        categoryData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
       $q.notify({
         type: 'positive',
         message: 'Category updated successfully',
         position: 'top',
       })
+    } else {
+      const response = await axios.post('http://localhost:5000/api/categories', categoryData, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      console.log('Create response:', response.data)
+      $q.notify({
+        type: 'positive',
+        message: 'Category created successfully',
+        position: 'top',
+      })
     }
-  } else {
-    categories.value.push({
-      ...categoryForm.value,
-      id: categories.value.length + 1,
-      productCount: 0,
-      revenue: 0,
-    })
+
+    closeDialog()
+    fetchCategories()
+  } catch (error) {
+    console.error('Error saving category:', error)
+    console.error('Error response:', error.response?.data)
+
+    let errorMessage = 'Failed to save category'
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.response?.status === 401) {
+      errorMessage = 'Not authorized. Please login again.'
+    } else if (error.response?.status === 403) {
+      errorMessage = 'Not authorized as admin. Please login again.'
+    }
+
     $q.notify({
-      type: 'positive',
-      message: 'Category created successfully',
+      type: 'negative',
+      message: errorMessage,
       position: 'top',
     })
   }
-
-  closeDialog()
 }
 
 const closeDialog = () => {
@@ -481,10 +516,11 @@ const closeDialog = () => {
   categoryForm.value = {
     name: '',
     description: '',
+    slug: '',
     icon: 'category',
-    gradient: 'from-blue-500 to-blue-600',
-    image: '',
-    status: 'Active',
+    parent: null,
+    active: true,
+    order: 1,
   }
 }
 </script>
