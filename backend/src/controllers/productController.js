@@ -44,6 +44,7 @@ export const getProducts = async (req, res) => {
       .sort(sort)
       .limit(Number(limit))
       .skip(skip)
+      .lean() // Return plain JS objects instead of Mongoose documents for better performance
 
     const total = await Product.countDocuments(query)
 

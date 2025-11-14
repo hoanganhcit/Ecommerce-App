@@ -115,7 +115,7 @@
         <!-- Items Column -->
         <template v-slot:body-cell-items="props">
           <q-td :props="props">
-            <div class="flex -space-x-2">
+            <div class="flex space-x-2">
               <img
                 v-for="(item, index) in props.row.items.slice(0, 3)"
                 :key="item.id"
@@ -259,15 +259,21 @@
           <div class="border-t pt-4">
             <div class="flex justify-between mb-2">
               <span class="text-gray-600">Tạm tính:</span>
-              <span class="font-medium">{{ formatPrice(selectedOrder.total) }}</span>
+              <span class="font-medium">{{ formatPrice(selectedOrder.subtotal || 0) }}</span>
             </div>
             <div class="flex justify-between mb-2">
               <span class="text-gray-600">Phí vận chuyển:</span>
-              <span class="font-medium">{{ formatPrice(30000) }}</span>
+              <span class="font-medium">{{ formatPrice(selectedOrder.shippingFee || 0) }}</span>
+            </div>
+            <div v-if="selectedOrder.discount > 0" class="flex justify-between mb-2">
+              <span class="text-gray-600">Giảm giá:</span>
+              <span class="font-medium text-green-600"
+                >-{{ formatPrice(selectedOrder.discount) }}</span
+              >
             </div>
             <div class="flex justify-between text-lg font-bold border-t pt-2">
               <span>Tổng cộng:</span>
-              <span class="text-blue-600">{{ formatPrice(selectedOrder.total + 30000) }}</span>
+              <span class="text-blue-600">{{ formatPrice(selectedOrder.total || 0) }}</span>
             </div>
           </div>
         </q-card-section>
@@ -310,9 +316,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import ordersData from 'src/data/ordersData.json'
+import axios from 'axios'
 
 const $q = useQuasar()
+
+// Get admin auth header
+const getAdminAuthHeader = () => {
+  const token = localStorage.getItem('adminToken')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 // State
 const orders = ref([])
@@ -391,23 +403,62 @@ const columns = [
   },
 ]
 
-// Load orders from JSON
+// Load orders from API
 onMounted(() => {
   loadOrders()
 })
 
-const loadOrders = () => {
+const loadOrders = async () => {
   loading.value = true
-  setTimeout(() => {
-    orders.value = ordersData.orders.map((order) => ({
-      ...order,
-      customer: `Khách hàng ${order.id.slice(-3)}`,
-      customerEmail: `customer${order.id.slice(-3)}@email.com`,
-      customerPhone: `0${Math.floor(Math.random() * 900000000) + 100000000}`,
-    }))
-    pagination.value.rowsNumber = orders.value.length
+  try {
+    const response = await axios.get('http://localhost:5000/api/orders', {
+      headers: getAdminAuthHeader(),
+    })
+
+    if (response.data.success) {
+      orders.value = response.data.data.map((order) => ({
+        id: order.orderId || order._id,
+        _id: order._id,
+        date: formatDate(order.createdAt),
+        customer: order.customerInfo?.fullName || 'N/A',
+        customerEmail: order.customerInfo?.email || 'N/A',
+        customerPhone: order.customerInfo?.phone || 'N/A',
+        items: order.items || [],
+        total: order.total || 0,
+        subtotal: order.subtotal || 0,
+        shippingFee: order.shippingFee || 0,
+        discount: order.discount || 0,
+        status: order.status || 'pending',
+        paymentMethod: order.paymentMethod || 'cod',
+        paymentStatus: order.paymentStatus || 'pending',
+        shippingAddress: order.shippingAddress || {},
+        notes: order.notes || '',
+        statusHistory: order.statusHistory || [],
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      }))
+      pagination.value.rowsNumber = orders.value.length
+    }
+  } catch (error) {
+    console.error('Load orders error:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Không thể tải danh sách đơn hàng',
+      position: 'top-right',
+    })
+  } finally {
     loading.value = false
-  }, 500)
+  }
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
 // Computed Stats
@@ -541,15 +592,34 @@ const editOrder = (order) => {
   showEditStatus.value = true
 }
 
-const updateOrderStatus = () => {
+const updateOrderStatus = async () => {
   if (selectedOrder.value && newStatus.value) {
-    selectedOrder.value.status = newStatus.value
-    showEditStatus.value = false
-    $q.notify({
-      type: 'positive',
-      message: 'Cập nhật trạng thái thành công',
-      position: 'top-right',
-    })
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/orders/${selectedOrder.value._id}/status`,
+        { status: newStatus.value },
+        { headers: getAdminAuthHeader() },
+      )
+
+      if (response.data.success) {
+        selectedOrder.value.status = newStatus.value
+        showEditStatus.value = false
+        // Reload orders to get updated data
+        await loadOrders()
+        $q.notify({
+          type: 'positive',
+          message: 'Cập nhật trạng thái thành công',
+          position: 'top-right',
+        })
+      }
+    } catch (error) {
+      console.error('Update status error:', error)
+      $q.notify({
+        type: 'negative',
+        message: error.response?.data?.message || 'Không thể cập nhật trạng thái',
+        position: 'top-right',
+      })
+    }
   }
 }
 

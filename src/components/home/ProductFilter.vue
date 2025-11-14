@@ -20,136 +20,221 @@
 
     <!-- Filter Sidebar (Always visible on desktop, collapsible on mobile) -->
     <div :class="['space-y-6', showFilters ? 'block' : 'hidden lg:!block']">
-      <!-- Categories -->
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
-          <i class="fal fa-list mr-2"></i>Danh mục
+      <!-- Skeleton Loading -->
+      <template v-if="isLoading">
+        <!-- Categories Skeleton -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <q-skeleton type="text" width="40%" class="mb-4" />
+          <div class="space-y-2">
+            <q-skeleton type="rect" height="40px" class="rounded-lg" v-for="i in 4" :key="i" />
+          </div>
         </div>
-        <div class="space-y-2">
-          <button
-            v-for="category in categories"
-            :key="category.id"
-            @click="$emit('update:selectedCategory', category.id)"
-            :class="[
-              'w-full text-left px-3 py-2 rounded-lg text-sm transition-all hover:text-blue-500',
-              selectedCategory === category.id ? '!text-blue-500 font-semibold' : 'text-gray-900',
-            ]"
-          >
-            {{ category.name }}
-          </button>
-        </div>
-      </div>
 
-      <!-- Price Range Filter -->
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-bold text-gray-900 mb-6 uppercase">
-          <i class="fal fa-dollar-sign mr-2"></i>Khoảng giá
+        <!-- Price Range Skeleton -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <q-skeleton type="text" width="40%" class="mb-4" />
+          <q-skeleton type="rect" height="60px" class="rounded-lg" />
         </div>
-        <div class="px-2">
-          <q-range
-            :model-value="priceRange"
-            @update:model-value="$emit('update:priceRange', $event)"
-            :min="minPrice"
-            :max="maxPrice"
-            :step="50000"
-            label
-            color="gray-900"
-            label-always
-            :left-label-value="`${formatPrice(priceRange.min)}`"
-            :right-label-value="`${formatPrice(priceRange.max)}`"
-          />
-        </div>
-        <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
-          <span>{{ formatPrice(minPrice) }}</span>
-          <span>{{ formatPrice(maxPrice) }}</span>
-        </div>
-      </div>
 
-      <!-- Size Filter -->
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
-          <i class="fal fa-ruler mr-2"></i>Kích thước
+        <!-- Size Filter Skeleton -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <q-skeleton type="text" width="40%" class="mb-4" />
+          <div class="flex flex-wrap gap-2">
+            <q-skeleton
+              type="rect"
+              width="60px"
+              height="36px"
+              class="rounded-lg"
+              v-for="i in 5"
+              :key="i"
+            />
+          </div>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="size in availableSizes"
-            :key="size"
-            @click="$emit('toggle-size', size)"
-            :class="[
-              'px-3 py-1.5 border-2 rounded-lg text-sm font-medium transition-all',
-              selectedSizes.includes(size)
-                ? 'border-gray-900 bg-gray-900 text-white'
-                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400',
-            ]"
-          >
-            {{ size }}
-          </button>
-        </div>
-      </div>
 
-      <!-- Color Filter -->
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
-          <i class="fal fa-palette mr-2"></i>Màu sắc
+        <!-- Color Filter Skeleton -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <q-skeleton type="text" width="40%" class="mb-4" />
+          <div class="flex flex-wrap gap-3">
+            <q-skeleton type="circle" size="32px" v-for="i in 6" :key="i" />
+          </div>
         </div>
-        <div class="flex flex-wrap gap-3">
-          <button
-            v-for="color in availableColors"
-            :key="color.name"
-            @click="$emit('toggle-color', color.name)"
-            class="group flex flex-col items-center gap-1"
-          >
-            <div
+      </template>
+
+      <!-- Actual Content -->
+      <template v-else>
+        <!-- Categories -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
+            <i class="fal fa-list mr-2"></i>Danh mục
+          </div>
+          <ul class="space-y-1">
+            <li v-for="category in rootCategories" :key="category.id">
+              <!-- Parent Category -->
+              <div class="flex items-center">
+                <button
+                  @click="$emit('update:selectedCategory', category.id)"
+                  :class="[
+                    'flex-1 text-left px-3 py-2 rounded-lg text-sm transition-all hover:text-blue-500 hover:bg-blue-50',
+                    selectedCategory === category.id
+                      ? 'text-blue-600 font-semibold bg-blue-50'
+                      : 'text-gray-900',
+                  ]"
+                >
+                  {{ category.name }}
+                </button>
+                <button
+                  v-if="hasChildren(category.id)"
+                  @click="toggleCategory(category.id)"
+                  class="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                >
+                  <i
+                    :class="[
+                      'fal text-xs transition-transform w-3',
+                      expandedCategories.includes(category.id)
+                        ? 'fa-minus text-gray-700'
+                        : 'fa-plus text-gray-500',
+                    ]"
+                  ></i>
+                </button>
+                <span v-else class="w-7 flex-shrink-0"></span>
+              </div>
+
+              <!-- Children Categories -->
+              <ul
+                v-if="expandedCategories.includes(category.id) && hasChildren(category.id)"
+                class="ml-7 mt-1 border-l-2 border-gray-200 pl-3 space-y-1"
+              >
+                <li v-for="child in getChildren(category.id)" :key="child.id">
+                  <button
+                    @click="$emit('update:selectedCategory', child.id)"
+                    :class="[
+                      'w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all hover:text-blue-500 hover:bg-blue-50',
+                      selectedCategory === child.id
+                        ? 'text-blue-600 font-semibold bg-blue-50'
+                        : 'text-gray-700',
+                    ]"
+                  >
+                    {{ child.name }}
+                  </button>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Price Range Filter -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
+            <i class="fal fa-dollar-sign mr-2"></i>Khoảng giá
+          </div>
+          <div class="px-2">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-xs font-semibold text-gray-900">{{
+                formatPrice(priceRange.min)
+              }}</span>
+              <span class="text-xs font-semibold text-gray-900">{{
+                formatPrice(priceRange.max)
+              }}</span>
+            </div>
+            <q-range
+              v-model="localPriceRange"
+              :min="minPrice"
+              :max="maxPrice"
+              :step="50000"
+              color="grey-9"
+              label-always
+              :label-value="`${formatPrice(localPriceRange.min)} - ${formatPrice(localPriceRange.max)}`"
+              class="q-mt-md"
+            />
+          </div>
+        </div>
+
+        <!-- Size Filter -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
+            <i class="fal fa-ruler mr-2"></i>Kích thước
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="size in availableSizes"
+              :key="size"
+              @click="$emit('toggle-size', size)"
               :class="[
-                'w-8 h-8 rounded-full border-4 transition-all',
-                selectedColors.includes(color.name)
-                  ? 'border-gray-900 scale-110'
-                  : 'border-gray-200 group-hover:border-gray-400',
+                'px-3 py-1.5 border-2 rounded-lg text-sm font-medium transition-all',
+                selectedSizes.includes(size)
+                  ? 'border-gray-900 bg-gray-900 text-white'
+                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400',
               ]"
-              :style="{ backgroundColor: color.value }"
-            />
-          </button>
+            >
+              {{ size }}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- Collection Filter -->
-      <div class="bg-white rounded-lg border border-gray-200 p-4">
-        <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
-          <i class="fal fa-layer-group mr-2"></i>Bộ sưu tập
+        <!-- Color Filter -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
+            <i class="fal fa-palette mr-2"></i>Màu sắc
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button
+              v-for="color in availableColors"
+              :key="color.name"
+              @click="$emit('toggle-color', color.name)"
+              class="group flex flex-col items-center gap-1"
+            >
+              <div
+                :class="[
+                  'w-8 h-8 rounded-full border-4 transition-all',
+                  selectedColors.includes(color.name)
+                    ? 'border-gray-900 scale-110'
+                    : 'border-gray-200 group-hover:border-gray-400',
+                ]"
+                :style="{ backgroundColor: color.value }"
+              />
+            </button>
+          </div>
         </div>
-        <div class="space-y-2">
-          <label
-            v-for="collection in collections"
-            :key="collection.id"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-          >
-            <input
-              type="checkbox"
-              :value="collection.id"
-              :checked="selectedCollections.includes(collection.id)"
-              @change="$emit('toggle-collection', collection.id)"
-              class="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900 focus:ring-2 cursor-pointer"
-            />
-            <span class="text-sm text-gray-700 font-medium">{{ collection.name }}</span>
-          </label>
-        </div>
-      </div>
 
-      <!-- Clear Filters Button -->
-      <button
-        v-if="hasActiveFilters"
-        @click="$emit('clear-filters')"
-        class="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium text-sm"
-      >
-        <i class="fal fa-times-circle mr-2"></i>
-        Xóa tất cả bộ lọc
-      </button>
+        <!-- Collection Filter -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4">
+          <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
+            <i class="fal fa-layer-group mr-2"></i>Bộ sưu tập
+          </div>
+          <div class="space-y-2">
+            <label
+              v-for="collection in collections"
+              :key="collection.id"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+            >
+              <input
+                type="checkbox"
+                :value="collection.id"
+                :checked="selectedCollections.includes(collection.id)"
+                @change="$emit('toggle-collection', collection.id)"
+                class="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900 focus:ring-2 cursor-pointer"
+              />
+              <span class="text-sm text-gray-700 font-medium">{{ collection.name }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Clear Filters Button -->
+        <button
+          v-if="hasActiveFilters"
+          @click="$emit('clear-filters')"
+          class="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium text-sm"
+        >
+          <i class="fal fa-times-circle mr-2"></i>
+          Xóa tất cả bộ lọc
+        </button>
+      </template>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 // Props
 const props = defineProps({
@@ -201,10 +286,14 @@ const props = defineProps({
     type: Function,
     required: true,
   },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 // Emits
-defineEmits([
+const emit = defineEmits([
   'update:selectedCategory',
   'update:priceRange',
   'toggle-size',
@@ -215,8 +304,36 @@ defineEmits([
 
 // Local state
 const showFilters = ref(false)
+const localPriceRange = ref({ min: props.priceRange.min, max: props.priceRange.max })
+const expandedCategories = ref([])
 
 // Computed
+const rootCategories = computed(() => {
+  // Get all category IDs
+  const allCategoryIds = new Set(props.categories.map((c) => c.id))
+
+  return props.categories.filter((cat) => {
+    // Skip "All" category if exists
+    if (cat.id === 0 || cat.name === 'Tất cả') return false
+
+    // No parent field means root
+    if (!cat.parent || cat.parent === null || cat.parent === undefined) return true
+
+    // If parent is an object, check its id
+    if (typeof cat.parent === 'object') {
+      const parentId = cat.parent.id || cat.parent._id
+      // If parent id not in our list, treat as root
+      if (!parentId || !allCategoryIds.has(parentId)) return true
+      return false
+    }
+
+    // If parent is a string/number, check if it exists in our list
+    if (!allCategoryIds.has(cat.parent)) return true
+
+    return false
+  })
+})
+
 const hasActiveFilters = computed(() => {
   return (
     props.selectedSizes.length > 0 ||
@@ -236,8 +353,53 @@ const activeFiltersCount = computed(() => {
   return count
 })
 
+// Watch for external price range changes
+watch(
+  () => props.priceRange,
+  (newValue) => {
+    localPriceRange.value = { min: newValue.min, max: newValue.max }
+  },
+  { deep: true },
+)
+
+// Watch for local price range changes and emit
+watch(
+  localPriceRange,
+  (newValue) => {
+    emit('update:priceRange', { min: newValue.min, max: newValue.max })
+  },
+  { deep: true },
+)
+
 // Methods
 const toggleFilters = () => {
   showFilters.value = !showFilters.value
 }
+
+const toggleCategory = (categoryId) => {
+  const index = expandedCategories.value.indexOf(categoryId)
+  if (index > -1) {
+    expandedCategories.value.splice(index, 1)
+  } else {
+    expandedCategories.value.push(categoryId)
+  }
+}
+
+const hasChildren = (parentId) => {
+  return props.categories.some((cat) => {
+    if (!cat.parent) return false
+    const catParentId = typeof cat.parent === 'object' ? cat.parent.id : cat.parent
+    return catParentId === parentId
+  })
+}
+
+const getChildren = (parentId) => {
+  return props.categories.filter((cat) => {
+    if (!cat.parent) return false
+    const catParentId = typeof cat.parent === 'object' ? cat.parent.id : cat.parent
+    return catParentId === parentId
+  })
+}
 </script>
+
+<style scoped></style>

@@ -1,6 +1,25 @@
 <template>
+  <!-- Skeleton Loading -->
+  <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+    <div
+      v-for="i in 12"
+      :key="i"
+      class="bg-white rounded-lg overflow-hidden border border-gray-200"
+    >
+      <q-skeleton height="300px" square />
+      <div class="p-4 space-y-3">
+        <q-skeleton type="text" width="60%" />
+        <q-skeleton type="text" width="40%" />
+        <div class="flex items-center justify-between">
+          <q-skeleton type="text" width="30%" />
+          <q-skeleton type="circle" size="24px" />
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Products Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+  <div v-else class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
     <div v-for="product in products" :key="product.id" class="product-card bg-white">
       <!-- Product Image -->
       <div
@@ -233,6 +252,10 @@ defineProps({
     type: Array,
     required: true,
   },
+  isLoading: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 // Emits
@@ -253,70 +276,36 @@ const isAdding = ref(false)
 // Computed
 const availableSizes = computed(() => {
   if (!selectedProduct.value) return []
-  const sizes = new Set()
-  selectedProduct.value.variants?.forEach((variant) => {
-    sizes.add(variant.size)
-  })
-  return Array.from(sizes).sort()
+  // Get sizes directly from product.sizes array
+  return selectedProduct.value.sizes || []
 })
 
 const availableColors = computed(() => {
   if (!selectedProduct.value) return []
-  const colorsMap = new Map()
-  selectedProduct.value.variants?.forEach((variant) => {
-    if (!colorsMap.has(variant.color)) {
-      colorsMap.set(variant.color, {
-        name: variant.color,
-        value: variant.colorCode,
-      })
-    }
-  })
-  return Array.from(colorsMap.values())
+  // Get colors from product.colors array and format them
+  return (selectedProduct.value.colors || []).map((color) => ({
+    name: color.name,
+    value: color.hex,
+  }))
 })
 
-// Get available sizes for selected color
+// Get available sizes for selected color (all sizes available in new model)
 const availableSizesForColor = computed(() => {
-  if (!selectedProduct.value || !selectedColor.value) return new Set(availableSizes.value)
-
-  const sizes = new Set()
-  selectedProduct.value.variants?.forEach((variant) => {
-    if (variant.color === selectedColor.value && variant.stock > 0) {
-      sizes.add(variant.size)
-    }
-  })
-  return sizes
+  return new Set(availableSizes.value)
 })
 
-// Get available colors for selected size
+// Get available colors for selected size (all colors available in new model)
 const availableColorsForSize = computed(() => {
-  if (!selectedProduct.value || !selectedSize.value) {
-    // If no size selected, show all colors but mark which are available
-    return availableColors.value.map((color) => ({
-      ...color,
-      available:
-        selectedProduct.value.variants?.some((v) => v.color === color.name && v.stock > 0) || false,
-    }))
-  }
-
-  const availableColorNames = new Set()
-  selectedProduct.value.variants?.forEach((variant) => {
-    if (variant.size === selectedSize.value && variant.stock > 0) {
-      availableColorNames.add(variant.color)
-    }
-  })
-
   return availableColors.value.map((color) => ({
     ...color,
-    available: availableColorNames.has(color.name),
+    available: true,
   }))
 })
 
 const selectedVariantStock = computed(() => {
-  if (!selectedProduct.value || !selectedSize.value || !selectedColor.value) return null
-  const variant = selectedProduct.value.variants?.find(
-    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
-  )
-  return variant ? variant.stock : 0
+  if (!selectedProduct.value) return null
+  // Use product total stock in new model
+  return selectedProduct.value.stock || 0
 })
 
 // Methods
@@ -346,12 +335,10 @@ const handleToggleFavorite = (product) => {
 // Watch for selection changes to validate combinations
 watch([selectedSize, selectedColor], () => {
   if (selectedSize.value && selectedColor.value && selectedProduct.value) {
-    const isValidCombination = selectedProduct.value.variants?.some(
-      (v) => v.size === selectedSize.value && v.color === selectedColor.value && v.stock > 0,
-    )
-    if (!isValidCombination) {
+    // In new model, all size/color combinations are valid if product has stock
+    if (selectedProduct.value.stock <= 0) {
       $q.notify({
-        message: 'Kết hợp size và màu này không có sẵn',
+        message: 'Sản phẩm hiện đã hết hàng',
         color: 'warning',
         icon: 'warning',
         position: 'top-right',
@@ -385,23 +372,10 @@ const confirmAddToCart = () => {
     return
   }
 
-  const selectedVariant = selectedProduct.value.variants.find(
-    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
-  )
-
-  if (!selectedVariant) {
+  // Check stock availability
+  if (selectedProduct.value.stock < quantity.value) {
     $q.notify({
-      message: 'Không tìm thấy sản phẩm với kích thước và màu sắc đã chọn',
-      color: 'negative',
-      icon: 'error',
-      position: 'top-right',
-    })
-    return
-  }
-
-  if (selectedVariant.stock < quantity.value) {
-    $q.notify({
-      message: `Chỉ còn ${selectedVariant.stock} sản phẩm trong kho`,
+      message: `Chỉ còn ${selectedProduct.value.stock} sản phẩm trong kho`,
       color: 'warning',
       icon: 'warning',
       position: 'top-right',
@@ -412,8 +386,16 @@ const confirmAddToCart = () => {
   isAdding.value = true
 
   setTimeout(() => {
+    // Create variant object for cart (new model)
+    const variant = {
+      size: selectedSize.value,
+      color: selectedColor.value,
+      colorCode:
+        availableColors.value.find((c) => c.name === selectedColor.value)?.value || '#000000',
+    }
+
     // Add to cart store
-    cartStore.addToCart(selectedProduct.value, selectedVariant, quantity.value)
+    cartStore.addToCart(selectedProduct.value, variant, quantity.value)
 
     // Show success notification
     $q.notify({

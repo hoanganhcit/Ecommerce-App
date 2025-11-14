@@ -1,6 +1,19 @@
 <template>
   <q-page class="slider-page">
+    <!-- Loading Skeleton -->
+    <div v-if="isLoading" class="full-height bg-gray-200 animate-pulse">
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="text-center space-y-4">
+          <q-skeleton type="text" width="400px" height="60px" class="mx-auto" />
+          <q-skeleton type="text" width="600px" height="40px" class="mx-auto" />
+          <q-skeleton type="rect" width="200px" height="50px" class="mx-auto rounded" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Carousel -->
     <q-carousel
+      v-else
       v-model="slide"
       swipeable
       control-color="white"
@@ -44,11 +57,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const slide = ref('1')
+const isLoading = ref(true)
 
 // Slides data
 const slides = ref([
@@ -78,6 +92,13 @@ const slides = ref([
 const goToShop = () => {
   router.push('/shop')
 }
+
+// Simulate loading
+onMounted(() => {
+  setTimeout(() => {
+    isLoading.value = false
+  }, 500)
+})
 </script>
 
 <style scoped>

@@ -128,6 +128,15 @@ productSchema.virtual('discountPrice').get(function () {
   return this.price
 })
 
+// Indexes for better query performance
+productSchema.index({ category: 1, isActive: 1 })
+productSchema.index({ price: 1 })
+productSchema.index({ slug: 1 })
+productSchema.index({ createdAt: -1 })
+productSchema.index({ sizes: 1 })
+productSchema.index({ 'colors.name': 1 })
+productSchema.index({ collections: 1 })
+
 productSchema.set('toJSON', { virtuals: true })
 productSchema.set('toObject', { virtuals: true })
 

@@ -1,8 +1,30 @@
 <template>
   <q-page class="product-detail-page bg-white">
     <!-- Loading State -->
-    <div v-if="loading" class="flex justify-center items-center h-screen">
-      <q-spinner color="primary" size="50px" />
+    <div v-if="loading" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <!-- Breadcrumb Skeleton -->
+      <q-skeleton type="text" width="40%" class="mb-8" />
+
+      <!-- Product Section Skeleton -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+        <!-- Images Grid Skeleton -->
+        <div class="grid grid-cols-2 gap-2">
+          <q-skeleton height="300px" class="rounded-lg" v-for="i in 4" :key="i" />
+        </div>
+
+        <!-- Product Info Skeleton -->
+        <div class="space-y-6">
+          <q-skeleton type="text" width="80%" height="30px" />
+          <div class="space-y-2">
+            <q-skeleton type="text" width="40%" height="28px" />
+            <q-skeleton type="text" width="60%" />
+          </div>
+          <q-skeleton type="rect" height="60px" />
+          <q-skeleton type="rect" height="40px" />
+          <q-skeleton type="rect" height="60px" />
+          <q-skeleton type="rect" height="60px" class="rounded-lg" />
+        </div>
+      </div>
     </div>
 
     <!-- Product Not Found -->
@@ -257,9 +279,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 import { useStoreData } from 'src/composables/useStoreData'
 import { useCartStore } from 'src/stores/useCartStore'
 import ProductsList from 'src/components/home/ProductsList.vue'
@@ -281,67 +304,33 @@ const showImageModal = ref(false)
 const currentImageIndex = ref(0)
 // Variations - Computed from product data
 const sizes = computed(() => {
-  if (!product.value?.variants) return []
-  return [...new Set(product.value.variants.map((v) => v.size))]
+  if (!product.value?.sizes) return []
+  return product.value.sizes
 })
 
 const colors = computed(() => {
-  if (!product.value?.variants) return []
-  return [
-    ...new Map(
-      product.value.variants.map((v) => [v.color, { name: v.color, value: v.colorCode }]),
-    ).values(),
-  ]
+  if (!product.value?.colors) return []
+  return product.value.colors.map((c) => ({ name: c.name, value: c.hex }))
 })
 
 // Get available sizes for selected color
 const availableSizesForColor = computed(() => {
-  if (!product.value || !selectedColor.value) return new Set(sizes.value)
-
-  const availableSizes = new Set()
-  product.value.variants?.forEach((variant) => {
-    if (variant.color === selectedColor.value && variant.stock > 0) {
-      availableSizes.add(variant.size)
-    }
-  })
-  return availableSizes
+  // All sizes are available in new model
+  return new Set(sizes.value)
 })
 
 // Get available colors for selected size
 const availableColorsForSize = computed(() => {
-  if (!product.value || !selectedSize.value) {
-    // If no size selected, show all colors but mark which are available
-    return colors.value.map((color) => ({
-      ...color,
-      available:
-        product.value?.variants?.some((v) => v.color === color.name && v.stock > 0) || false,
-    }))
-  }
-
-  const availableColorNames = new Set()
-  product.value.variants?.forEach((variant) => {
-    if (variant.size === selectedSize.value && variant.stock > 0) {
-      availableColorNames.add(variant.color)
-    }
-  })
-
+  // All colors are available in new model
   return colors.value.map((color) => ({
     ...color,
-    available: availableColorNames.has(color.name),
+    available: true,
   }))
 })
 
-// Selected variant
-const selectedVariant = computed(() => {
-  if (!product.value?.variants || !selectedSize.value || !selectedColor.value) return null
-  return product.value.variants.find(
-    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
-  )
-})
-
-// Available stock for selected variant
+// Available stock - use product total stock
 const availableStock = computed(() => {
-  return selectedVariant.value?.stock || 0
+  return product.value?.stock || 0
 })
 
 // Computed
@@ -414,17 +403,7 @@ const addToCart = () => {
     return
   }
 
-  if (!selectedVariant.value) {
-    $q.notify({
-      message: 'Biến thể không tồn tại',
-      color: 'negative',
-      icon: 'error',
-      position: 'top-right',
-    })
-    return
-  }
-
-  if (selectedVariant.value.stock < quantity.value) {
+  if (product.value.stock < quantity.value) {
     $q.notify({
       message: 'Số lượng vượt quá tồn kho',
       color: 'warning',
@@ -438,7 +417,13 @@ const addToCart = () => {
   isAddingToCart.value = true
 
   setTimeout(() => {
-    cartStore.addToCart(product.value, selectedVariant.value, quantity.value)
+    // Create variant object for cart
+    const variant = {
+      size: selectedSize.value,
+      color: selectedColor.value,
+      colorCode: colors.value.find((c) => c.name === selectedColor.value)?.value || '#000000',
+    }
+    cartStore.addToCart(product.value, variant, quantity.value)
 
     $q.notify({
       message: `Đã thêm "${product.value.name}" vào giỏ hàng`,
@@ -451,46 +436,60 @@ const addToCart = () => {
   }, 100)
 }
 
-const loadProduct = () => {
+const loadProduct = async () => {
   loading.value = true
 
-  // Extract product ID from slug (format: slug-name-123)
-  const slug = route.params.slug
-  const productId = parseInt(slug.split('-').pop())
+  try {
+    const slug = route.params.slug
+    const response = await axios.get(`http://localhost:5000/api/products/slug/${slug}`)
 
-  // Simulate API call
-  setTimeout(() => {
-    product.value = products.value.find((p) => p.id === productId)
+    if (response.data.success) {
+      const productData = response.data.data
 
-    if (product.value) {
-      // Set default selections to first available variant
-      const firstVariant = product.value.variants?.[0]
-      if (firstVariant) {
-        selectedSize.value = firstVariant.size
-        selectedColor.value = firstVariant.color
+      // Transform product data to match UI structure
+      product.value = {
+        id: productData._id,
+        sku: productData.sku,
+        name: productData.name,
+        slug: productData.slug,
+        description: productData.description,
+        price: productData.price,
+        originalPrice: productData.originalPrice,
+        discount: productData.discount,
+        image: productData.images?.[0] || '',
+        images: productData.images || [],
+        category: productData.category?.name || '',
+        sizes: productData.sizes || [],
+        colors: productData.colors || [],
+        collections: productData.collections || [],
+        tags: productData.tags || [],
+        rating: productData.rating?.average || 0,
+        reviews: productData.rating?.count || 0,
+        stock: productData.stock || 0,
+        sold: productData.sold || 0,
+        specifications: productData.specifications || {},
+      }
+
+      // Set default selections to first available
+      if (product.value.sizes?.length > 0) {
+        selectedSize.value = product.value.sizes[0]
+      }
+      if (product.value.colors?.length > 0) {
+        selectedColor.value = product.value.colors[0].name
       }
     }
-
+  } catch (error) {
+    console.error('Error loading product:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Không tìm thấy sản phẩm',
+      position: 'top',
+    })
+    router.push('/products')
+  } finally {
     loading.value = false
-  }, 500)
-}
-
-// Watch for selection changes to validate combinations
-watch([selectedSize, selectedColor], () => {
-  if (selectedSize.value && selectedColor.value && product.value) {
-    const isValidCombination = product.value.variants?.some(
-      (v) => v.size === selectedSize.value && v.color === selectedColor.value && v.stock > 0,
-    )
-    if (!isValidCombination) {
-      $q.notify({
-        message: 'Kết hợp size và màu này không có sẵn',
-        color: 'warning',
-        icon: 'warning',
-        position: 'top-right',
-      })
-    }
   }
-})
+}
 
 // Lifecycle
 onMounted(() => {

@@ -11,6 +11,7 @@ const routes = [
       { path: 'checkout', component: () => import('pages/home/CheckoutPage.vue') },
       { path: 'account', component: () => import('pages/home/MyAccountPage.vue') },
       { path: 'orders', component: () => import('pages/home/MyOrdersPage.vue') },
+      { path: 'orders/:id', component: () => import('pages/home/MyOrderDetailPage.vue') },
     ],
   },
 

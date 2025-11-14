@@ -39,23 +39,21 @@
             Sản Phẩm
           </router-link>
 
-          <router-link
-            to="/account"
-            @click="toggleMenuDrawer(false)"
-            class="block px-4 py-3 text-uppercase text-gray-100 hover:bg-gray-800 hover:text-gray-100 rounded-lg transition-all font-light tracking-widest"
+          <a
+            @click="handleAccountClick"
+            class="block px-4 py-3 text-uppercase text-gray-100 hover:bg-gray-800 hover:text-gray-100 rounded-lg transition-all font-light tracking-widest cursor-pointer"
           >
             <i class="fal fa-user-circle mr-3 text-gray-100"></i>
             Tài Khoản
-          </router-link>
+          </a>
 
-          <router-link
-            to="/orders"
-            @click="toggleMenuDrawer(false)"
-            class="block px-4 py-3 text-uppercase text-gray-100 hover:bg-gray-800 hover:text-gray-100 rounded-lg transition-all font-light tracking-widest"
+          <a
+            @click="handleOrdersClick"
+            class="block px-4 py-3 text-uppercase text-gray-100 hover:bg-gray-800 hover:text-gray-100 rounded-lg transition-all font-light tracking-widest cursor-pointer"
           >
             <i class="fal fa-clipboard-list mr-3 text-gray-100"></i>
             Đơn Hàng
-          </router-link>
+          </a>
         </div>
       </nav>
 
@@ -138,6 +136,24 @@ const handleLogin = () => {
 // Handle register button click
 const handleRegister = () => {
   router.push('/home/register')
+}
+
+// Handle account click - check authentication
+const handleAccountClick = () => {
+  if (isAuthenticated.value) {
+    router.push('/account')
+  } else {
+    router.push('/home/login')
+  }
+}
+
+// Handle orders click - check authentication
+const handleOrdersClick = () => {
+  if (isAuthenticated.value) {
+    router.push('/orders')
+  } else {
+    router.push('/home/login')
+  }
 }
 
 // Handle logout

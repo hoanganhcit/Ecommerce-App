@@ -92,11 +92,15 @@
                   </label>
                   <q-select
                     v-model="form.city"
-                    :options="cities"
+                    :options="provinces"
                     outlined
                     dense
                     placeholder="Chọn tỉnh/thành"
                     :rules="[(val) => !!val || 'Vui lòng chọn tỉnh/thành']"
+                    emit-value
+                    map-options
+                    option-label="label"
+                    option-value="value"
                   />
                 </div>
                 <div>
@@ -110,6 +114,12 @@
                     dense
                     placeholder="Chọn quận/huyện"
                     :rules="[(val) => !!val || 'Vui lòng chọn quận/huyện']"
+                    :disable="!form.city || isLoadingDistricts"
+                    :loading="isLoadingDistricts"
+                    emit-value
+                    map-options
+                    option-label="label"
+                    option-value="value"
                   />
                 </div>
                 <div>
@@ -123,6 +133,12 @@
                     dense
                     placeholder="Chọn phường/xã"
                     :rules="[(val) => !!val || 'Vui lòng chọn phường/xã']"
+                    :disable="!form.district || isLoadingWards"
+                    :loading="isLoadingWards"
+                    emit-value
+                    map-options
+                    option-label="label"
+                    option-value="value"
                   />
                 </div>
               </div>
@@ -314,17 +330,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useCartStore } from 'src/stores/useCartStore'
 import { useStoreData } from 'src/composables/useStoreData'
+import { useAuthStore } from 'src/stores/useAuthStore'
 import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
 const { cartItems, totalPrice, clearCart } = useCartStore()
 const { formatPrice } = useStoreData()
+const { customer, getAuthHeader } = useAuthStore()
 
 // State
 const isSubmitting = ref(false)
@@ -335,11 +353,132 @@ const form = ref({
   phone: '',
   email: '',
   address: '',
-  city: '',
-  district: '',
-  ward: '',
+  city: null,
+  district: null,
+  ward: null,
   note: '',
   paymentMethod: 'cod',
+})
+
+// Address data from API
+const provinces = ref([])
+const districts = ref([])
+const wards = ref([])
+const isLoadingDistricts = ref(false)
+const isLoadingWards = ref(false)
+
+// Fetch provinces on mount
+const fetchProvinces = async () => {
+  try {
+    const response = await axios.get('https://provinces.open-api.vn/api/p/')
+    provinces.value = response.data.map((p) => ({
+      label: p.name,
+      value: p.code,
+      name: p.name,
+    }))
+  } catch (error) {
+    console.error('Error fetching provinces:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Không thể tải danh sách tỉnh/thành',
+      position: 'top-right',
+    })
+  }
+}
+
+// Fetch districts when province changes
+const fetchDistricts = async (provinceCode) => {
+  if (!provinceCode) {
+    districts.value = []
+    return
+  }
+
+  isLoadingDistricts.value = true
+  try {
+    const response = await axios.get(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`)
+    districts.value = response.data.districts.map((d) => ({
+      label: d.name,
+      value: d.code,
+      name: d.name,
+    }))
+  } catch (error) {
+    console.error('Error fetching districts:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Không thể tải danh sách quận/huyện',
+      position: 'top-right',
+    })
+  } finally {
+    isLoadingDistricts.value = false
+  }
+}
+
+// Fetch wards when district changes
+const fetchWards = async (districtCode) => {
+  if (!districtCode) {
+    wards.value = []
+    return
+  }
+
+  isLoadingWards.value = true
+  try {
+    const response = await axios.get(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`)
+    wards.value = response.data.wards.map((w) => ({
+      label: w.name,
+      value: w.code,
+      name: w.name,
+    }))
+  } catch (error) {
+    console.error('Error fetching wards:', error)
+    $q.notify({
+      type: 'negative',
+      message: 'Không thể tải danh sách phường/xã',
+      position: 'top-right',
+    })
+  } finally {
+    isLoadingWards.value = false
+  }
+}
+
+// Watch for city/district changes
+watch(
+  () => form.value.city,
+  (newCity) => {
+    form.value.district = null
+    form.value.ward = null
+    districts.value = []
+    wards.value = []
+    if (newCity) {
+      fetchDistricts(newCity)
+    }
+  },
+)
+
+watch(
+  () => form.value.district,
+  (newDistrict) => {
+    form.value.ward = null
+    wards.value = []
+    if (newDistrict) {
+      fetchWards(newDistrict)
+    }
+  },
+)
+
+// Load customer data on mount
+onMounted(async () => {
+  await fetchProvinces()
+
+  if (customer.value) {
+    form.value.fullName = customer.value.fullName || ''
+    form.value.phone = customer.value.phone || ''
+    form.value.email = customer.value.email || ''
+
+    const defaultAddress = customer.value.addresses?.find((addr) => addr.isDefault)
+    if (defaultAddress) {
+      form.value.address = defaultAddress.fullAddress || ''
+    }
+  }
 })
 
 // Available vouchers (mock data)
@@ -369,11 +508,6 @@ const availableVouchers = [
     value: 50000,
   },
 ]
-
-// Mock data for address
-const cities = ref(['Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ'])
-const districts = ref(['Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5'])
-const wards = ref(['Phường 1', 'Phường 2', 'Phường 3', 'Phường 4', 'Phường 5'])
 
 // Payment methods
 const paymentMethods = [
@@ -519,15 +653,15 @@ const handlePlaceOrder = async () => {
   isSubmitting.value = true
 
   try {
-    // Prepare order items
+    // Prepare order items with full details
     const orderItems = cartItems.value.map((item) => ({
-      productId: item.product.id,
+      productId: item.product.id || item.product._id,
       quantity: item.quantity,
       size: item.variant?.size,
       color: item.variant?.color,
     }))
 
-    // Prepare order data
+    // Prepare order data matching backend schema
     const orderData = {
       items: orderItems,
       customerInfo: {
@@ -537,9 +671,10 @@ const handlePlaceOrder = async () => {
       },
       shippingAddress: {
         address: form.value.address,
-        city: form.value.city,
-        district: form.value.district,
-        ward: form.value.ward,
+        city: provinces.value.find((p) => p.value === form.value.city)?.name || form.value.city,
+        district:
+          districts.value.find((d) => d.value === form.value.district)?.name || form.value.district,
+        ward: wards.value.find((w) => w.value === form.value.ward)?.name || form.value.ward,
       },
       paymentMethod: form.value.paymentMethod,
       notes: form.value.note,
@@ -549,11 +684,13 @@ const handlePlaceOrder = async () => {
             type: appliedVoucher.value.type,
             value: appliedVoucher.value.value,
           }
-        : null,
+        : undefined,
     }
 
     // Call API to create order
-    const response = await axios.post('http://localhost:5000/api/orders', orderData)
+    const response = await axios.post('http://localhost:5000/api/orders', orderData, {
+      headers: getAuthHeader(),
+    })
 
     if (response.data.success) {
       console.log('Order created:', response.data.data)

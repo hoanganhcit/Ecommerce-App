@@ -21,9 +21,10 @@ export function useStoreData() {
 
     try {
       // Fetch categories, products, and collections in parallel
+      // Add limit=1000 to get all products for filtering (or implement infinite scroll later)
       const [categoriesRes, productsRes] = await Promise.all([
         axios.get(`${API_URL}/categories`),
-        axios.get(`${API_URL}/products`),
+        axios.get(`${API_URL}/products?limit=1000`),
       ])
 
       if (categoriesRes.data.success) {
@@ -56,6 +57,7 @@ export function useStoreData() {
       description: cat.description,
       image: cat.image,
       active: cat.active,
+      parent: cat.parent?._id || cat.parent || null,
     })),
   ])
 
@@ -75,15 +77,18 @@ export function useStoreData() {
       images: product.images || [], // All images
       category: product.category?._id || product.category,
       categoryId: product.category?._id || product.category,
-      collectionIds: product.collectionIds || [],
-      variants: product.variants || [],
-      rating: product.rating || 0,
-      reviews: product.reviews || 0,
+      categoryName: product.category?.name || '',
+      sizes: product.sizes || [],
+      colors: product.colors || [],
+      collections: product.collections || [],
       tags: product.tags || [],
-      active: product.active,
-      featured: product.featured,
+      rating: product.rating?.average || 0,
+      reviews: product.rating?.count || 0,
+      isFeatured: product.isFeatured || false,
+      isActive: product.isActive !== false,
       stock: product.stock || 0,
       sold: product.sold || 0,
+      specifications: product.specifications || {},
     })),
   )
 

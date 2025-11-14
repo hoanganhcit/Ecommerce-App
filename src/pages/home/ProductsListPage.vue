@@ -17,6 +17,7 @@
           :availableColors="availableColors"
           :collections="collections"
           :formatPrice="formatPrice"
+          :isLoading="isLoadingData"
           @toggle-size="toggleSize"
           @toggle-color="toggleColor"
           @toggle-collection="toggleCollection"
@@ -83,17 +84,15 @@
           </div>
 
           <!-- Products Grid -->
-          <div
-            v-if="loading && currentProducts.length === 0"
-            class="flex justify-center items-center py-20"
-          >
-            <q-spinner color="gray-900" size="50px" />
+          <div v-if="isLoadingData && currentProducts.length === 0">
+            <ProductsList :products="[]" :isLoading="true" />
           </div>
 
           <div v-else>
             <!-- Products List Component -->
             <ProductsList
               :products="currentProducts"
+              :isLoading="false"
               @product-click="goToProductDetail"
               @add-to-cart="addToCart"
               @toggle-favorite="toggleFavorite"
@@ -156,6 +155,7 @@ const {
   collections: allCollections,
   getCategoryBySlug,
   formatPrice,
+  isLoading: isLoadingData,
 } = useStoreData()
 
 const { addToCart: addToCartStore } = useCartStore()
@@ -167,7 +167,9 @@ const loadingMore = ref(false)
 const displayedCount = ref(12)
 
 // Filter states
-const priceRange = ref({ min: 0, max: 5000000 })
+const priceRange = ref({ min: 0, max: 10000000 })
+const userHasChangedPrice = ref(false)
+const isInitialLoad = ref(true)
 const selectedSizes = ref([])
 const selectedColors = ref([])
 const selectedCollections = ref([])
@@ -177,40 +179,48 @@ const allProducts = products
 
 // Calculate min and max price from all products
 const minPrice = computed(() => {
+  if (allProducts.value.length === 0) return 0
   const prices = allProducts.value.map((p) => p.price)
   return Math.floor(Math.min(...prices) / 50000) * 50000
 })
 
 const maxPrice = computed(() => {
+  if (allProducts.value.length === 0) return 10000000
   const prices = allProducts.value.map((p) => p.price)
   return Math.ceil(Math.max(...prices) / 50000) * 50000
 })
 
-// Get all available sizes from products
+// Get all available sizes from products (cached)
 const availableSizes = computed(() => {
+  if (allProducts.value.length === 0) return []
   const sizes = new Set()
-  allProducts.value.forEach((product) => {
-    product.variants?.forEach((variant) => {
-      sizes.add(variant.size)
-    })
-  })
-  return Array.from(sizes)
+  for (const product of allProducts.value) {
+    if (product.sizes) {
+      for (const size of product.sizes) {
+        sizes.add(size)
+      }
+    }
+  }
+  return [...sizes]
 })
 
-// Get all available colors from products
+// Get all available colors from products (cached)
 const availableColors = computed(() => {
+  if (allProducts.value.length === 0) return []
   const colorsMap = new Map()
-  allProducts.value.forEach((product) => {
-    product.variants?.forEach((variant) => {
-      if (!colorsMap.has(variant.color)) {
-        colorsMap.set(variant.color, {
-          name: variant.color,
-          value: variant.colorCode,
-        })
+  for (const product of allProducts.value) {
+    if (product.colors) {
+      for (const color of product.colors) {
+        if (!colorsMap.has(color.hex)) {
+          colorsMap.set(color.hex, {
+            name: color.name,
+            value: color.hex,
+          })
+        }
       }
-    })
-  })
-  return Array.from(colorsMap.values())
+    }
+  }
+  return [...colorsMap.values()]
 })
 
 // Collections for select
@@ -218,47 +228,56 @@ const collections = computed(() => allCollections.value)
 
 // Check if any filter is active
 const hasActiveFilters = computed(() => {
+  const isPriceChanged =
+    userHasChangedPrice.value &&
+    (priceRange.value.min !== minPrice.value || priceRange.value.max !== maxPrice.value)
+
   return (
     selectedSizes.value.length > 0 ||
     selectedColors.value.length > 0 ||
     selectedCollections.value.length > 0 ||
-    priceRange.value.min !== minPrice.value ||
-    priceRange.value.max !== maxPrice.value
+    isPriceChanged
   )
 })
 
-// Computed
+// Computed - Optimized filtering
 const filteredProducts = computed(() => {
   let products = allProducts.value
+
+  // Early return if no products
+  if (products.length === 0) return []
 
   // Filter by category
   if (selectedCategory.value !== 0) {
     products = products.filter((product) => product.category === selectedCategory.value)
   }
 
-  // Filter by price range
-  products = products.filter(
-    (product) => product.price >= priceRange.value.min && product.price <= priceRange.value.max,
-  )
+  // Filter by price range - only if user has manually changed it
+  if (userHasChangedPrice.value) {
+    const minP = priceRange.value.min
+    const maxP = priceRange.value.max
+    products = products.filter((product) => product.price >= minP && product.price <= maxP)
+  }
 
-  // Filter by size
+  // Filter by size - use Set for O(1) lookup
   if (selectedSizes.value.length > 0) {
-    products = products.filter((product) =>
-      product.variants?.some((variant) => selectedSizes.value.includes(variant.size)),
-    )
+    const sizeSet = new Set(selectedSizes.value)
+    products = products.filter((product) => product.sizes?.some((size) => sizeSet.has(size)))
   }
 
-  // Filter by color
+  // Filter by color - use Set for O(1) lookup
   if (selectedColors.value.length > 0) {
+    const colorSet = new Set(selectedColors.value)
     products = products.filter((product) =>
-      product.variants?.some((variant) => selectedColors.value.includes(variant.color)),
+      product.colors?.some((color) => colorSet.has(color.name)),
     )
   }
 
-  // Filter by collection
+  // Filter by collection - use Set for O(1) lookup
   if (selectedCollections.value.length > 0) {
+    const collectionSet = new Set(selectedCollections.value)
     products = products.filter((product) =>
-      product.collectionIds?.some((id) => selectedCollections.value.includes(id)),
+      product.collections?.some((collection) => collectionSet.has(collection)),
     )
   }
 
@@ -313,6 +332,7 @@ const removeCollection = (collectionId) => {
 }
 
 const resetPriceRange = () => {
+  userHasChangedPrice.value = false
   priceRange.value = { min: minPrice.value, max: maxPrice.value }
   displayedCount.value = 12
 }
@@ -321,6 +341,7 @@ const clearFilters = () => {
   selectedSizes.value = []
   selectedColors.value = []
   selectedCollections.value = []
+  userHasChangedPrice.value = false
   priceRange.value = { min: minPrice.value, max: maxPrice.value }
   displayedCount.value = 12
 }
@@ -343,8 +364,9 @@ const createSlug = (text) => {
 }
 
 const goToProductDetail = (product) => {
-  const slug = createSlug(product.name)
-  router.push(`/product/${slug}-${product.id}`)
+  // Use slug from backend if available, otherwise create one
+  const slug = product.slug || createSlug(product.name)
+  router.push(`/product/${slug}`)
 }
 
 const loadMore = () => {
@@ -368,6 +390,45 @@ const addToCart = (product) => {
     position: 'top-right',
   })
 }
+
+// Watch for products load - update price range to match actual products
+watch(
+  () => allProducts.value.length,
+  (newLength) => {
+    if (newLength > 0) {
+      console.log('Products loaded:', newLength)
+
+      // Update price range to match actual product prices WITHOUT triggering filter
+      // This must happen BEFORE isInitialLoad becomes false
+      priceRange.value = {
+        min: minPrice.value,
+        max: maxPrice.value,
+      }
+
+      // Mark initial load as complete after price range is set
+      setTimeout(() => {
+        isInitialLoad.value = false
+      }, 100)
+    }
+  },
+  { immediate: true },
+)
+
+// Watch for price range changes by user - ignore initial load
+watch(
+  priceRange,
+  (newVal, oldVal) => {
+    // Only set flag if not initial load and values actually changed
+    if (
+      !isInitialLoad.value &&
+      oldVal &&
+      (newVal.min !== oldVal.min || newVal.max !== oldVal.max)
+    ) {
+      userHasChangedPrice.value = true
+    }
+  },
+  { deep: true },
+)
 
 const toggleFavorite = (product) => {
   $q.notify({

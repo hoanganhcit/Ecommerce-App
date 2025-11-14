@@ -141,8 +141,13 @@ export const createOrder = async (req, res) => {
 
     const total = subtotal + shippingFee - discount
 
+    // Generate unique orderId
+    const orderCount = await Order.countDocuments()
+    const orderId = `ORD${Date.now()}${String(orderCount + 1).padStart(4, '0')}`
+
     // Create order
     const order = await Order.create({
+      orderId,
       customer: customer._id,
       items: orderItems,
       customerInfo,

@@ -3,7 +3,9 @@
     <div class="max-w-md w-full space-y-8">
       <!-- Header -->
       <div>
-        <div class="mt-6 text-center text-3xl font-extrabold text-gray-900">Đăng nhập</div>
+        <div class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Đăng nhập thành viên
+        </div>
         <p class="mt-2 text-center text-sm text-gray-600">
           Hoặc
           <router-link to="/home/register" class="font-medium text-blue-600 hover:text-blue-500">

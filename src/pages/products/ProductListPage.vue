@@ -182,9 +182,9 @@
                 <span class="text-sm text-gray-700">{{ product.category }}</span>
               </td>
               <td class="px-6 py-4 text-right">
-                <span class="text-sm font-semibold text-gray-900"
-                  >${{ product.price.toFixed(2) }}</span
-                >
+                <span class="text-sm font-semibold text-gray-900">{{
+                  formatVND(product.price)
+                }}</span>
               </td>
               <td class="px-6 py-4 text-center">
                 <span
@@ -204,14 +204,12 @@
                 <span
                   :class="[
                     'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                    product.status === 'Active'
+                    product.status === 'active'
                       ? 'bg-green-100 text-green-800'
-                      : product.status === 'Draft'
-                        ? 'bg-gray-100 text-gray-800'
-                        : 'bg-red-100 text-red-800',
+                      : 'bg-gray-100 text-gray-800',
                   ]"
                 >
-                  {{ product.status }}
+                  {{ product.status === 'active' ? 'Active' : 'Inactive' }}
                 </span>
               </td>
               <td class="px-6 py-4">
@@ -313,7 +311,7 @@ const fetchProducts = async () => {
         categoryId: p.category?._id,
         price: p.price,
         stock: p.stock,
-        status: p.active ? 'active' : 'inactive',
+        status: p.isActive ? 'active' : 'inactive',
         image: p.images?.[0] || '',
       }))
     }
@@ -463,5 +461,12 @@ const deleteProduct = (product) => {
       })
     }
   })
+}
+
+const formatVND = (price) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(price)
 }
 </script>
