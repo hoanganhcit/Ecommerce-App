@@ -3,7 +3,9 @@
     <header class="fixed top-0 left-0 right-0 z-30">
       <div class="flex sm:ml-20 items-center justify-center py-4">
         <router-link to="/" class="text-white font-bold text-lg">
-          <div class="text-logo text-gray-900">{{ settingsStore.storeName || 'Louie Store' }}</div>
+          <div class="text-logo text-gray-900">
+            {{ settingsStore.storeName || 'Vintage Shop' }}
+          </div>
         </router-link>
       </div>
     </header>
