@@ -5,6 +5,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left Sidebar - Filters -->
         <ProductFilter
+          ref="productFilterRef"
           :categories="categories"
           v-model:selectedCategory="selectedCategory"
           v-model:priceRange="priceRange"
@@ -158,7 +159,11 @@ const {
   isLoading: isLoadingData,
 } = useStoreData()
 
-const { addToCart: addToCartStore } = useCartStore()
+const cartStore = useCartStore()
+const { addToCart: addToCartStore } = cartStore
+
+// Refs
+const productFilterRef = ref(null)
 
 // State
 const selectedCategory = ref(0)
@@ -240,6 +245,21 @@ const hasActiveFilters = computed(() => {
   )
 })
 
+// Get all category IDs including children recursively
+const getAllCategoryIds = (categoryId) => {
+  if (categoryId === 0) return [] // "All" means no filter
+
+  const ids = [categoryId]
+
+  // Get all descendants if productFilterRef is ready
+  if (productFilterRef.value?.getAllDescendantIds) {
+    const descendants = productFilterRef.value.getAllDescendantIds(categoryId)
+    ids.push(...descendants)
+  }
+
+  return ids
+}
+
 // Computed - Optimized filtering
 const filteredProducts = computed(() => {
   let products = allProducts.value
@@ -249,7 +269,9 @@ const filteredProducts = computed(() => {
 
   // Filter by category
   if (selectedCategory.value !== 0) {
-    products = products.filter((product) => product.category === selectedCategory.value)
+    const categoryIds = getAllCategoryIds(selectedCategory.value)
+    const categorySet = new Set(categoryIds)
+    products = products.filter((product) => categorySet.has(product.category))
   }
 
   // Filter by price range - only if user has manually changed it

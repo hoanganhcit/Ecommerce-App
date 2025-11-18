@@ -13,11 +13,10 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600 mb-1">Total Orders</p>
-            <div class="text-3xl font-bold text-gray-900">2,847</div>
-            <p class="text-xs text-green-600 mt-2 flex items-center">
-              <q-icon name="trending_up" size="16px" class="mr-1" />
-              +18.3% from last month
-            </p>
+            <div class="text-3xl font-bold text-gray-900">
+              {{ stats.totalOrders.toLocaleString() }}
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Tổng số đơn hàng</p>
           </div>
           <div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center">
             <q-icon name="shopping_bag" size="28px" class="text-blue-600" />
@@ -30,11 +29,8 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600 mb-1">Revenue</p>
-            <div class="text-3xl font-bold text-gray-900">$52,340</div>
-            <p class="text-xs text-green-600 mt-2 flex items-center">
-              <q-icon name="trending_up" size="16px" class="mr-1" />
-              +14.7% from last month
-            </p>
+            <div class="text-3xl font-bold text-gray-900">{{ formatPrice(stats.revenue) }}</div>
+            <p class="text-xs text-gray-500 mt-2">Doanh thu từ đơn đã giao</p>
           </div>
           <div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center">
             <q-icon name="attach_money" size="28px" class="text-green-600" />
@@ -47,11 +43,8 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600 mb-1">Products</p>
-            <div class="text-3xl font-bold text-gray-900">342</div>
-            <p class="text-xs text-green-600 mt-2 flex items-center">
-              <q-icon name="trending_up" size="16px" class="mr-1" />
-              +23 new items
-            </p>
+            <div class="text-3xl font-bold text-gray-900">{{ stats.products }}</div>
+            <p class="text-xs text-gray-500 mt-2">Tổng số sản phẩm</p>
           </div>
           <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center">
             <q-icon name="checkroom" size="28px" class="text-orange-600" />
@@ -64,11 +57,8 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600 mb-1">Customers</p>
-            <div class="text-3xl font-bold text-gray-900">1,567</div>
-            <p class="text-xs text-green-600 mt-2 flex items-center">
-              <q-icon name="trending_up" size="16px" class="mr-1" />
-              +21.5% from last month
-            </p>
+            <div class="text-3xl font-bold text-gray-900">{{ stats.customers }}</div>
+            <p class="text-xs text-gray-500 mt-2">Tổng số khách hàng</p>
           </div>
           <div class="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center">
             <q-icon name="people" size="28px" class="text-purple-600" />
@@ -92,8 +82,6 @@
                 v-model="revenueFilter"
                 class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="6months">Last 6 Months</option>
-                <option value="12months">Last 12 Months</option>
                 <option value="year">This Year</option>
               </select>
             </div>
@@ -104,18 +92,18 @@
               <div
                 v-for="(month, index) in revenueData"
                 :key="index"
-                class="flex-1 flex flex-col items-center justify-end group"
+                class="flex-1 flex flex-col items-center justify-end h-64 group no-wrap"
               >
-                <div class="relative w-full flex flex-col items-center justify-end h-full">
+                <div class="relative w-full flex flex-col items-center justify-end h-full no-wrap">
                   <!-- Tooltip -->
                   <div
-                    class="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10"
+                    class="mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10"
                   >
-                    ${{ month.amount.toLocaleString() }}
+                    {{ formatPrice(month.amount) }}
                   </div>
                   <!-- Bar -->
                   <div
-                    class="w-full bg-gradient-to-t from-green-500 to-green-400 rounded-t-lg transition-all duration-500 ease-out hover:from-green-600 hover:to-green-500 cursor-pointer"
+                    class="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all duration-500 ease-out hover:from-blue-600 hover:to-blue-500 cursor-pointer"
                     :style="{ height: month.percentage + '%' }"
                   ></div>
                 </div>
@@ -129,13 +117,11 @@
             <div class="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-100">
               <div class="text-center">
                 <p class="text-xs text-gray-600 mb-1">Total Revenue</p>
-                <p class="text-xl font-bold text-green-600">${{ totalRevenue.toLocaleString() }}</p>
+                <p class="text-xl font-bold text-green-600">{{ formatPrice(totalRevenue) }}</p>
               </div>
               <div class="text-center">
                 <p class="text-xs text-gray-600 mb-1">Average</p>
-                <p class="text-xl font-bold text-blue-600">
-                  ${{ averageRevenue.toLocaleString() }}
-                </p>
+                <p class="text-xl font-bold text-blue-600">{{ formatPrice(averageRevenue) }}</p>
               </div>
               <div class="text-center">
                 <p class="text-xs text-gray-600 mb-1">Growth</p>
@@ -167,74 +153,52 @@
                     stroke="#f3f4f6"
                     stroke-width="12"
                   ></circle>
-                  <!-- Men's Clothing segment (45%) -->
+                  <!-- Dynamic segments -->
                   <circle
+                    v-for="(segment, index) in earningsChartSegments"
+                    :key="index"
                     cx="50"
                     cy="50"
                     r="40"
                     fill="none"
-                    stroke="#3b82f6"
+                    :stroke="segment.color"
                     stroke-width="12"
-                    stroke-dasharray="113.1 251.2"
-                    transform="rotate(-90 50 50)"
-                    class="transition-all duration-500"
-                  ></circle>
-                  <!-- Women's Clothing segment (40%) -->
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#ec4899"
-                    stroke-width="12"
-                    stroke-dasharray="100.48 251.2"
-                    stroke-dashoffset="-113.1"
-                    transform="rotate(-90 50 50)"
-                    class="transition-all duration-500"
-                  ></circle>
-                  <!-- Accessories segment (15%) -->
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#f59e0b"
-                    stroke-width="12"
-                    stroke-dasharray="37.68 251.2"
-                    stroke-dashoffset="-213.58"
+                    :stroke-dasharray="segment.dashArray"
+                    :stroke-dashoffset="segment.dashOffset"
                     transform="rotate(-90 50 50)"
                     class="transition-all duration-500"
                   ></circle>
                 </svg>
                 <div class="absolute inset-0 flex items-center justify-center flex-col">
-                  <p class="text-2xl font-bold text-gray-900">$52,340</p>
+                  <p class="text-xl font-bold text-gray-900 !mb-0">
+                    {{ formatPrice(totalEarnings) }}
+                  </p>
                   <p class="text-xs text-gray-600">Total Earnings</p>
                 </div>
               </div>
             </div>
 
             <!-- Legend -->
+            <div class="text-xl font-bold text-gray-900 mb-4">Danh mục bán chạy</div>
             <div class="space-y-3">
-              <div class="flex items-center justify-between">
+              <div
+                v-for="(segment, index) in earningsChartSegments"
+                :key="index"
+                class="flex items-center justify-between"
+              >
                 <div class="flex items-center gap-2">
-                  <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span class="text-sm text-gray-700">Men's Clothing</span>
+                  <div
+                    class="w-3 h-3 rounded-full"
+                    :style="{ backgroundColor: segment.color }"
+                  ></div>
+                  <span class="text-sm text-gray-700">{{ segment.name }}</span>
                 </div>
-                <div class="text-sm font-semibold text-gray-900">$23,553 (45%)</div>
+                <div class="text-sm font-semibold text-gray-900">
+                  {{ formatPrice(segment.amount) }} ({{ segment.percentage }}%)
+                </div>
               </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-3 h-3 rounded-full bg-pink-500"></div>
-                  <span class="text-sm text-gray-700">Women's Clothing</span>
-                </div>
-                <div class="text-sm font-semibold text-gray-900">$20,936 (40%)</div>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                  <span class="text-sm text-gray-700">Accessories</span>
-                </div>
-                <div class="text-sm font-semibold text-gray-900">$7,851 (15%)</div>
+              <div v-if="earningsChartSegments.length === 0" class="text-center text-gray-500 py-4">
+                Chưa có dữ liệu
               </div>
             </div>
           </div>
@@ -289,9 +253,9 @@
                   <span class="text-sm text-gray-700">{{ order.customer }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
-                  <span class="text-sm font-semibold text-gray-900"
-                    >${{ order.amount.toFixed(2) }}</span
-                  >
+                  <span class="text-sm font-semibold text-gray-900">{{
+                    formatPrice(order.amount)
+                  }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                   <span
@@ -344,9 +308,9 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-0.5 !mb-0">{{ product.category }}</p>
                   </div>
-                  <span class="text-sm font-bold text-gray-900 flex-shrink-0"
-                    >${{ product.price.toFixed(2) }}</span
-                  >
+                  <span class="text-sm font-bold text-gray-900 flex-shrink-0">{{
+                    formatPrice(product.price)
+                  }}</span>
                 </div>
                 <div class="flex items-center gap-3 justify-between">
                   <p class="text-xs text-gray-600 flex items-center gap-1 !mb-0">
@@ -375,146 +339,246 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 
-const recentOrders = ref([
-  { id: '#1234', customer: 'Sarah Johnson', amount: 189.99, status: 'Completed' },
-  { id: '#1235', customer: 'Michael Chen', amount: 245.5, status: 'Processing' },
-  { id: '#1236', customer: 'Emily Davis', amount: 129.99, status: 'Completed' },
-  { id: '#1237', customer: 'James Wilson', amount: 310.0, status: 'Pending' },
-  { id: '#1238', customer: 'Lisa Anderson', amount: 167.75, status: 'Completed' },
-])
+// Get admin auth header
+const getAdminAuthHeader = () => {
+  const token = localStorage.getItem('adminToken')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
-// Popular Products Data
-const popularProducts = ref([
-  {
-    name: 'Classic Denim Jacket',
-    price: 89.99,
-    sold: 1543,
-    percentage: 95,
-    bgColor: 'bg-blue-600',
-    progressColor: 'bg-blue-600',
-    image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=100&h=100&fit=crop',
-    category: "Men's Wear",
-  },
-  {
-    name: 'Summer Floral Dress',
-    price: 129.99,
-    sold: 1287,
-    percentage: 85,
-    bgColor: 'bg-pink-500',
-    progressColor: 'bg-pink-500',
-    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=100&h=100&fit=crop',
-    category: "Women's Wear",
-  },
-  {
-    name: 'Slim Fit Chinos',
-    price: 79.99,
-    sold: 1095,
-    percentage: 72,
-    bgColor: 'bg-amber-600',
-    progressColor: 'bg-amber-600',
-    image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=100&h=100&fit=crop',
-    category: "Men's Wear",
-  },
-  {
-    name: 'Cotton T-Shirt Pack',
-    price: 49.99,
-    sold: 892,
-    percentage: 60,
-    bgColor: 'bg-gray-700',
-    progressColor: 'bg-gray-700',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop',
-    category: 'Basics',
-  },
-  {
-    name: 'Leather Ankle Boots',
-    price: 159.99,
-    sold: 654,
-    percentage: 45,
-    bgColor: 'bg-stone-800',
-    progressColor: 'bg-stone-800',
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=100&h=100&fit=crop',
-    category: 'Footwear',
-  },
-  {
-    name: 'Wool Blend Coat',
-    price: 199.99,
-    sold: 543,
-    percentage: 38,
-    bgColor: 'bg-slate-700',
-    progressColor: 'bg-slate-700',
-    image: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=100&h=100&fit=crop',
-    category: "Women's Wear",
-  },
-  {
-    name: 'Designer Sunglasses',
-    price: 149.99,
-    sold: 487,
-    percentage: 35,
-    bgColor: 'bg-indigo-600',
-    progressColor: 'bg-indigo-600',
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100&h=100&fit=crop',
-    category: 'Accessories',
-  },
-  {
-    name: 'Canvas Sneakers',
-    price: 69.99,
-    sold: 421,
-    percentage: 30,
-    bgColor: 'bg-teal-600',
-    progressColor: 'bg-teal-600',
-    image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=100&h=100&fit=crop',
-    category: 'Footwear',
-  },
-])
+// State
+const loading = ref(false)
+const stats = ref({
+  totalOrders: 0,
+  revenue: 0,
+  products: 0,
+  customers: 0,
+})
+const recentOrders = ref([])
+const popularProducts = ref([])
+const earningsByCategory = ref([])
+
+// Load dashboard data
+onMounted(() => {
+  loadDashboardData()
+})
+
+const loadDashboardData = async () => {
+  loading.value = true
+  try {
+    // Load orders
+    const ordersRes = await axios.get('http://localhost:5000/api/orders', {
+      headers: getAdminAuthHeader(),
+    })
+
+    // Load products
+    const productsRes = await axios.get('http://localhost:5000/api/products')
+
+    // Load customers
+    const customersRes = await axios.get('http://localhost:5000/api/customers', {
+      headers: getAdminAuthHeader(),
+    })
+
+    // Load categories
+    const categoriesRes = await axios.get('http://localhost:5000/api/categories')
+
+    if (ordersRes.data.success) {
+      const orders = ordersRes.data.data
+      stats.value.totalOrders = orders.length
+
+      // Calculate revenue from delivered orders
+      const deliveredOrders = orders.filter((o) => o.status === 'delivered')
+      stats.value.revenue = deliveredOrders.reduce((sum, o) => sum + (o.total || 0), 0)
+
+      // Calculate revenue by category for Earning Report
+      if (categoriesRes.data.success && productsRes.data.success) {
+        const categories = categoriesRes.data.data
+        const products = productsRes.data.data
+        const categoryRevenue = {}
+
+        // Create product lookup map
+        const productMap = {}
+        products.forEach((p) => {
+          productMap[p._id] = p
+        })
+
+        deliveredOrders.forEach((order) => {
+          order.items?.forEach((item) => {
+            // Get product from map
+            const product = productMap[item.product?._id || item.product]
+            if (product && product.category) {
+              const categoryId =
+                typeof product.category === 'object' ? product.category._id : product.category
+              categoryRevenue[categoryId] =
+                (categoryRevenue[categoryId] || 0) + (item.subtotal || 0)
+            }
+          })
+        })
+
+        console.log('Category Revenue:', categoryRevenue)
+
+        // Map to category names and calculate percentages
+        const totalEarnings = Object.values(categoryRevenue).reduce((sum, val) => sum + val, 0)
+        earningsByCategory.value = categories
+          .map((cat) => ({
+            name: cat.name,
+            amount: categoryRevenue[cat._id] || 0,
+            percentage:
+              totalEarnings > 0
+                ? Math.round(((categoryRevenue[cat._id] || 0) / totalEarnings) * 100)
+                : 0,
+          }))
+          .filter((cat) => cat.amount > 0)
+          .sort((a, b) => b.amount - a.amount)
+          .slice(0, 5) // Top 5 categories
+
+        console.log('Earnings by Category:', earningsByCategory.value)
+      }
+
+      // Calculate revenue by month for Revenue Report
+      const monthlyRevenue = {}
+      const currentYear = new Date().getFullYear()
+
+      deliveredOrders.forEach((order) => {
+        const orderDate = new Date(order.createdAt)
+        if (orderDate.getFullYear() === currentYear) {
+          const monthKey = orderDate.toLocaleString('en-US', { month: 'short' })
+          monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + (order.total || 0)
+        }
+      })
+
+      // Update revenue data for current year
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ]
+      revenueDataSets.value.year = months.map((month) => ({
+        month,
+        amount: monthlyRevenue[month] || 0,
+      }))
+
+      // Get recent orders (last 5)
+      recentOrders.value = orders.slice(0, 5).map((order) => ({
+        id: order.orderId || order._id,
+        customer: order.customerInfo?.fullName || 'N/A',
+        amount: order.total || 0,
+        status:
+          order.status === 'pending'
+            ? 'Pending'
+            : order.status === 'processing'
+              ? 'Processing'
+              : order.status === 'shipping'
+                ? 'Shipping'
+                : order.status === 'delivered'
+                  ? 'Completed'
+                  : 'Cancelled',
+      }))
+    }
+
+    if (productsRes.data.success) {
+      const products = productsRes.data.data
+      stats.value.products = products.length
+
+      // Get popular products (sort by sold)
+      const productsWithSales = products.filter((p) => p.sold > 0)
+      const maxSold =
+        productsWithSales.length > 0 ? Math.max(...productsWithSales.map((p) => p.sold)) : 1
+
+      popularProducts.value = productsWithSales
+        .sort((a, b) => b.sold - a.sold)
+        .slice(0, 8)
+        .map((product, index) => ({
+          name: product.name,
+          price: product.price,
+          sold: product.sold || 0,
+          percentage: Math.round(((product.sold || 0) / maxSold) * 100),
+          bgColor: getBgColor(index),
+          progressColor: getBgColor(index),
+          image: product.images?.[0] || 'https://via.placeholder.com/100',
+          category: product.category?.name || 'Uncategorized',
+        }))
+    }
+
+    if (customersRes.data.success) {
+      stats.value.customers = customersRes.data.data.length
+    }
+  } catch (error) {
+    console.error('Load dashboard data error:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const getBgColor = (index) => {
+  const colors = [
+    'bg-blue-600',
+    'bg-pink-500',
+    'bg-amber-600',
+    'bg-gray-700',
+    'bg-stone-800',
+    'bg-slate-700',
+    'bg-indigo-600',
+    'bg-teal-600',
+  ]
+  return colors[index % colors.length]
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+}
 
 // Revenue Report Data
-const revenueFilter = ref('6months')
+const revenueFilter = ref('year')
 
-const revenueDataSets = {
-  '6months': [
-    { month: 'Jun', amount: 38500 },
-    { month: 'Jul', amount: 42800 },
-    { month: 'Aug', amount: 45200 },
-    { month: 'Sep', amount: 48900 },
-    { month: 'Oct', amount: 51300 },
-    { month: 'Nov', amount: 52340 },
-  ],
-  '12months': [
-    { month: 'Jan', amount: 28500 },
-    { month: 'Feb', amount: 31200 },
-    { month: 'Mar', amount: 35000 },
-    { month: 'Apr', amount: 33500 },
-    { month: 'May', amount: 36800 },
-    { month: 'Jun', amount: 38500 },
-    { month: 'Jul', amount: 42800 },
-    { month: 'Aug', amount: 45200 },
-    { month: 'Sep', amount: 48900 },
-    { month: 'Oct', amount: 51300 },
-    { month: 'Nov', amount: 52340 },
-    { month: 'Dec', amount: 48000 },
-  ],
-  year: [
-    { month: 'Jan', amount: 28500 },
-    { month: 'Feb', amount: 31200 },
-    { month: 'Mar', amount: 35000 },
-    { month: 'Apr', amount: 33500 },
-    { month: 'May', amount: 36800 },
-    { month: 'Jun', amount: 38500 },
-    { month: 'Jul', amount: 42800 },
-    { month: 'Aug', amount: 45200 },
-    { month: 'Sep', amount: 48900 },
-    { month: 'Oct', amount: 51300 },
-    { month: 'Nov', amount: 52340 },
-    { month: 'Dec', amount: 0 },
-  ],
-}
+const revenueDataSets = ref({
+  '6months': [],
+  '12months': [],
+  year: [],
+})
+
+// Computed for earnings chart
+const totalEarnings = computed(() => {
+  return earningsByCategory.value.reduce((sum, cat) => sum + cat.amount, 0)
+})
+
+const earningsChartSegments = computed(() => {
+  const colors = ['#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6']
+  let offset = 0
+  const circumference = 251.2 // 2 * PI * 40
+
+  return earningsByCategory.value.map((cat, index) => {
+    const dashArray = (cat.percentage / 100) * circumference
+    const segment = {
+      name: cat.name,
+      amount: cat.amount,
+      percentage: cat.percentage,
+      color: colors[index % colors.length],
+      dashArray: `${dashArray} ${circumference}`,
+      dashOffset: -offset,
+    }
+    offset += dashArray
+    return segment
+  })
+})
 
 // Computed properties for Revenue Report
 const revenueData = computed(() => {
-  const data = revenueDataSets[revenueFilter.value]
+  const data = revenueDataSets.value[revenueFilter.value]
+  if (!data || data.length === 0) return []
   const maxAmount = Math.max(...data.map((d) => d.amount))
+  if (maxAmount === 0) return data.map((item) => ({ ...item, percentage: 0 }))
   return data.map((item) => ({
     ...item,
     percentage: (item.amount / maxAmount) * 100,

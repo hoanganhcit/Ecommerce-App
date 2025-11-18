@@ -331,18 +331,76 @@
               />
             </div>
 
-            <!-- Full Address -->
+            <!-- Address -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Địa chỉ đầy đủ <span class="text-red-500">*</span>
+                Địa chỉ <span class="text-red-500">*</span>
               </label>
-              <textarea
-                v-model="addressForm.fullAddress"
-                rows="3"
-                placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              <input
+                v-model="addressForm.address"
+                type="text"
+                placeholder="Số nhà, tên đường"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
-              ></textarea>
+              />
+            </div>
+
+            <!-- City, District, Ward -->
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Tỉnh/TP <span class="text-red-500">*</span>
+                </label>
+                <q-select
+                  v-model="addressForm.city"
+                  :options="provinces"
+                  outlined
+                  dense
+                  placeholder="Chọn"
+                  emit-value
+                  map-options
+                  option-label="label"
+                  option-value="value"
+                  @update:model-value="onCityChange"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Quận/Huyện <span class="text-red-500">*</span>
+                </label>
+                <q-select
+                  v-model="addressForm.district"
+                  :options="districts"
+                  outlined
+                  dense
+                  placeholder="Chọn"
+                  :disable="!addressForm.city || isLoadingDistricts"
+                  :loading="isLoadingDistricts"
+                  emit-value
+                  map-options
+                  option-label="label"
+                  option-value="value"
+                  @update:model-value="onDistrictChange"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Phường/Xã <span class="text-red-500">*</span>
+                </label>
+                <q-select
+                  v-model="addressForm.ward"
+                  :options="wards"
+                  outlined
+                  dense
+                  placeholder="Chọn"
+                  :disable="!addressForm.district || isLoadingWards"
+                  :loading="isLoadingWards"
+                  emit-value
+                  map-options
+                  option-label="label"
+                  option-value="value"
+                />
+              </div>
             </div>
 
             <!-- Set as Default -->
@@ -419,9 +477,95 @@ const addressForm = ref({
   label: '',
   receiverName: '',
   phone: '',
-  fullAddress: '',
+  address: '',
+  city: null,
+  district: null,
+  ward: null,
   isDefault: false,
 })
+
+// Address data from API
+const provinces = ref([])
+const districts = ref([])
+const wards = ref([])
+const isLoadingDistricts = ref(false)
+const isLoadingWards = ref(false)
+
+// Fetch provinces
+const fetchProvinces = async () => {
+  try {
+    const response = await axios.get('https://provinces.open-api.vn/api/p/')
+    provinces.value = response.data.map((p) => ({
+      label: p.name,
+      value: p.code,
+      name: p.name,
+    }))
+  } catch (error) {
+    console.error('Error fetching provinces:', error)
+  }
+}
+
+// Fetch districts
+const fetchDistricts = async (provinceCode) => {
+  if (!provinceCode) {
+    districts.value = []
+    return
+  }
+  isLoadingDistricts.value = true
+  try {
+    const response = await axios.get(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`)
+    districts.value = response.data.districts.map((d) => ({
+      label: d.name,
+      value: d.code,
+      name: d.name,
+    }))
+  } catch (error) {
+    console.error('Error fetching districts:', error)
+  } finally {
+    isLoadingDistricts.value = false
+  }
+}
+
+// Fetch wards
+const fetchWards = async (districtCode) => {
+  if (!districtCode) {
+    wards.value = []
+    return
+  }
+  isLoadingWards.value = true
+  try {
+    const response = await axios.get(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`)
+    wards.value = response.data.wards.map((w) => ({
+      label: w.name,
+      value: w.code,
+      name: w.name,
+    }))
+  } catch (error) {
+    console.error('Error fetching wards:', error)
+  } finally {
+    isLoadingWards.value = false
+  }
+}
+
+// Handle city change
+const onCityChange = async (cityCode) => {
+  addressForm.value.district = null
+  addressForm.value.ward = null
+  districts.value = []
+  wards.value = []
+  if (cityCode) {
+    await fetchDistricts(cityCode)
+  }
+}
+
+// Handle district change
+const onDistrictChange = async (districtCode) => {
+  addressForm.value.ward = null
+  wards.value = []
+  if (districtCode) {
+    await fetchWards(districtCode)
+  }
+}
 
 // Load customer data and addresses on mount
 onMounted(async () => {
@@ -434,7 +578,8 @@ onMounted(async () => {
     }
     originalProfile.value = { ...profile.value }
 
-    // Load addresses
+    // Load provinces and addresses
+    await fetchProvinces()
     await loadAddresses()
   } else {
     // Redirect to login if not authenticated
@@ -461,11 +606,15 @@ const loadAddresses = async () => {
 // Edit address
 const editAddress = (address) => {
   editingAddress.value = address
+  // Parse fullAddress back to separate fields if needed
   addressForm.value = {
     label: address.label,
     receiverName: address.receiverName,
     phone: address.phone,
-    fullAddress: address.fullAddress,
+    address: address.fullAddress, // Use fullAddress as single field for now
+    city: null,
+    district: null,
+    ward: null,
     isDefault: address.isDefault,
   }
   showAddressDialog.value = true
@@ -479,30 +628,53 @@ const closeAddressDialog = () => {
     label: '',
     receiverName: '',
     phone: '',
-    fullAddress: '',
+    address: '',
+    city: null,
+    district: null,
+    ward: null,
     isDefault: false,
   }
+  districts.value = []
+  wards.value = []
 }
 
 // Save address (add or update)
 const handleSaveAddress = async () => {
   isSavingAddress.value = true
   try {
+    // Combine address parts into fullAddress
+    const cityName = provinces.value.find((p) => p.value === addressForm.value.city)?.name || ''
+    const districtName =
+      districts.value.find((d) => d.value === addressForm.value.district)?.name || ''
+    const wardName = wards.value.find((w) => w.value === addressForm.value.ward)?.name || ''
+
+    const addressParts = [addressForm.value.address, wardName, districtName, cityName].filter(
+      Boolean,
+    )
+
+    const fullAddress = addressParts.join(', ')
+
+    const addressData = {
+      label: addressForm.value.label,
+      receiverName: addressForm.value.receiverName,
+      phone: addressForm.value.phone,
+      fullAddress: fullAddress,
+      isDefault: addressForm.value.isDefault,
+    }
+
     let response
     if (editingAddress.value) {
       // Update existing address
       response = await axios.put(
         `http://localhost:5000/api/customers/addresses/${editingAddress.value._id}`,
-        addressForm.value,
+        addressData,
         { headers: getAuthHeader() },
       )
     } else {
       // Add new address
-      response = await axios.post(
-        'http://localhost:5000/api/customers/addresses',
-        addressForm.value,
-        { headers: getAuthHeader() },
-      )
+      response = await axios.post('http://localhost:5000/api/customers/addresses', addressData, {
+        headers: getAuthHeader(),
+      })
     }
 
     if (response.data.success) {

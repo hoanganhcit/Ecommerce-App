@@ -327,7 +327,8 @@ const route = useRoute()
 const router = useRouter()
 const $q = useQuasar()
 const { getAuthHeader } = useAuthStore()
-const { addToCart } = useCartStore()
+const cartStore = useCartStore()
+const { addToCart } = cartStore
 
 // State
 const order = ref(null)

@@ -37,11 +37,12 @@ const productSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      required: [true, 'Category is required'],
-    },
+    category: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+      },
+    ],
     images: [
       {
         type: String,
@@ -61,6 +62,18 @@ const productSchema = new mongoose.Schema(
       {
         name: String,
         hex: String,
+      },
+    ],
+    variants: [
+      {
+        size: String,
+        color: String,
+        stock: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+        sku: String,
       },
     ],
     collections: [String],

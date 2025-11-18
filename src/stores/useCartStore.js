@@ -1,9 +1,29 @@
+import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-const cartItems = ref([])
-const showCartDrawer = ref(false)
+export const useCartStore = defineStore('cart', () => {
+  // State
+  const cartItems = ref([])
+  const showCartDrawer = ref(false)
 
-export function useCartStore() {
+  // Load cart from localStorage on initialization
+  const loadCart = () => {
+    const savedCart = localStorage.getItem('cart')
+    if (savedCart) {
+      try {
+        cartItems.value = JSON.parse(savedCart)
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error)
+        cartItems.value = []
+      }
+    }
+  }
+
+  // Save cart to localStorage
+  const saveCart = () => {
+    localStorage.setItem('cart', JSON.stringify(cartItems.value))
+  }
+
   // Add item to cart
   const addToCart = (product, variant = null, quantity = 1) => {
     const existingItem = cartItems.value.find(
@@ -24,6 +44,7 @@ export function useCartStore() {
       })
     }
 
+    saveCart()
     // Show cart drawer
     showCartDrawer.value = true
   }
@@ -33,6 +54,7 @@ export function useCartStore() {
     const index = cartItems.value.findIndex((item) => item.id === itemId)
     if (index > -1) {
       cartItems.value.splice(index, 1)
+      saveCart()
     }
   }
 
@@ -44,6 +66,7 @@ export function useCartStore() {
         removeFromCart(itemId)
       } else {
         item.quantity = quantity
+        saveCart()
       }
     }
   }
@@ -51,6 +74,7 @@ export function useCartStore() {
   // Clear cart
   const clearCart = () => {
     cartItems.value = []
+    localStorage.removeItem('cart')
   }
 
   // Toggle cart drawer
@@ -73,6 +97,9 @@ export function useCartStore() {
     return cartItems.value.length === 0
   })
 
+  // Initialize cart from localStorage
+  loadCart()
+
   return {
     // State
     cartItems,
@@ -84,10 +111,11 @@ export function useCartStore() {
     updateQuantity,
     clearCart,
     toggleCartDrawer,
+    loadCart,
 
     // Computed
     totalItems,
     totalPrice,
     isEmpty,
   }
-}
+})

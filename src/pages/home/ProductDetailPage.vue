@@ -315,22 +315,50 @@ const colors = computed(() => {
 
 // Get available sizes for selected color
 const availableSizesForColor = computed(() => {
-  // All sizes are available in new model
-  return new Set(sizes.value)
+  if (!selectedColor.value || !product.value?.variants) {
+    return new Set(sizes.value)
+  }
+
+  // Get sizes that have stock for selected color
+  const availableSizes = product.value.variants
+    .filter((v) => v.color === selectedColor.value && v.stock > 0)
+    .map((v) => v.size)
+
+  return new Set(availableSizes)
 })
 
 // Get available colors for selected size
 const availableColorsForSize = computed(() => {
-  // All colors are available in new model
+  if (!selectedSize.value || !product.value?.variants) {
+    return colors.value.map((color) => ({
+      ...color,
+      available: true,
+    }))
+  }
+
+  // Get colors that have stock for selected size
+  const availableColorNames = product.value.variants
+    .filter((v) => v.size === selectedSize.value && v.stock > 0)
+    .map((v) => v.color)
+
   return colors.value.map((color) => ({
     ...color,
-    available: true,
+    available: availableColorNames.includes(color.name),
   }))
 })
 
-// Available stock - use product total stock
+// Available stock - check variant stock based on selected size and color
 const availableStock = computed(() => {
-  return product.value?.stock || 0
+  if (!product.value || !selectedSize.value || !selectedColor.value) {
+    return product.value?.stock || 0
+  }
+
+  // Find variant matching selected size and color
+  const variant = product.value.variants?.find(
+    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
+  )
+
+  return variant?.stock || 0
 })
 
 // Computed
@@ -403,9 +431,9 @@ const addToCart = () => {
     return
   }
 
-  if (product.value.stock < quantity.value) {
+  if (availableStock.value < quantity.value) {
     $q.notify({
-      message: 'Số lượng vượt quá tồn kho',
+      message: `Chỉ còn ${availableStock.value} sản phẩm cho size ${selectedSize.value} màu ${selectedColor.value}`,
       color: 'warning',
       icon: 'warning',
       position: 'top-right',
@@ -461,6 +489,7 @@ const loadProduct = async () => {
         category: productData.category?.name || '',
         sizes: productData.sizes || [],
         colors: productData.colors || [],
+        variants: productData.variants || [],
         collections: productData.collections || [],
         tags: productData.tags || [],
         rating: productData.rating?.average || 0,

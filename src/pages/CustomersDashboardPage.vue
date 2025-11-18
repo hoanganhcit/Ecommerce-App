@@ -334,10 +334,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import customersData from 'src/data/customersData.json'
+import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
+
+// Get admin auth header
+const getAdminAuthHeader = () => {
+  const token = localStorage.getItem('adminToken')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 // State
 const customers = ref([])
@@ -434,18 +440,58 @@ const columns = [
   },
 ]
 
-// Load customers from JSON
+// Load customers from API
 onMounted(() => {
   loadCustomers()
 })
 
-const loadCustomers = () => {
+const loadCustomers = async () => {
   loading.value = true
-  setTimeout(() => {
-    customers.value = customersData.customers
-    pagination.value.rowsNumber = customers.value.length
+  try {
+    const response = await axios.get('http://localhost:5000/api/customers', {
+      headers: getAdminAuthHeader(),
+    })
+
+    if (response.data.success) {
+      customers.value = response.data.data.map((customer) => {
+        return {
+          id: customer._id,
+          name: customer.fullName || customer.name || 'N/A',
+          email: customer.email || 'N/A',
+          phone: customer.phone || 'N/A',
+          address: customer.address || 'N/A',
+          avatar: customer.avatar || 'https://cdn.quasar.dev/img/avatar.png',
+          joinDate: formatDate(customer.createdAt),
+          totalOrders: customer.totalOrders || 0,
+          totalSpent: customer.totalSpent || 0,
+          status: customer.status || 'active',
+          lastOrder: customer.lastOrder ? formatDate(customer.lastOrder) : 'Chưa có',
+          createdAt: customer.createdAt,
+          updatedAt: customer.updatedAt,
+        }
+      })
+      pagination.value.rowsNumber = customers.value.length
+    }
+  } catch (error) {
+    console.error('Load customers error:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Không thể tải danh sách khách hàng',
+      position: 'top-right',
+    })
+  } finally {
     loading.value = false
-  }, 500)
+  }
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
 // Computed Stats
@@ -575,15 +621,40 @@ const editCustomer = (customer) => {
   showEditCustomer.value = true
 }
 
-const updateCustomer = () => {
+const updateCustomer = async () => {
   if (selectedCustomer.value) {
-    Object.assign(selectedCustomer.value, editForm.value)
-    showEditCustomer.value = false
-    $q.notify({
-      type: 'positive',
-      message: 'Cập nhật thông tin thành công',
-      position: 'top-right',
-    })
+    try {
+      const response = await axios.put(
+        `http://localhost:5000/api/customers/${selectedCustomer.value.id}`,
+        {
+          fullName: editForm.value.name,
+          email: editForm.value.email,
+          phone: editForm.value.phone,
+          address: editForm.value.address,
+          status: editForm.value.status,
+        },
+        { headers: getAdminAuthHeader() },
+      )
+
+      if (response.data.success) {
+        Object.assign(selectedCustomer.value, editForm.value)
+        showEditCustomer.value = false
+        // Reload customers to get updated data
+        await loadCustomers()
+        $q.notify({
+          type: 'positive',
+          message: 'Cập nhật thông tin thành công',
+          position: 'top-right',
+        })
+      }
+    } catch (error) {
+      console.error('Update customer error:', error)
+      $q.notify({
+        type: 'negative',
+        message: error.response?.data?.message || 'Không thể cập nhật thông tin',
+        position: 'top-right',
+      })
+    }
   }
 }
 

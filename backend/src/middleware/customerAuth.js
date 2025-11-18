@@ -1,6 +1,42 @@
 import jwt from 'jsonwebtoken'
 import Customer from '../models/Customer.js'
 
+// Optional customer authentication - doesn't reject if no token
+export const optionalCustomerAuth = async (req, res, next) => {
+  let token
+
+  // Check for token in headers
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1]
+  }
+
+  // If no token, continue without customer
+  if (!token) {
+    return next()
+  }
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
+
+    // Check if it's a customer token
+    if (decoded.type === 'customer') {
+      // Get customer from token
+      const customer = await Customer.findById(decoded.id)
+
+      if (customer && customer.status !== 'inactive') {
+        // Attach customer to request
+        req.customer = customer
+      }
+    }
+  } catch (error) {
+    // Invalid token, continue without customer
+    console.log('Optional auth - invalid token, continuing as guest')
+  }
+
+  next()
+}
+
 // Protect routes - Customer authentication
 export const protectCustomer = async (req, res, next) => {
   let token
@@ -39,8 +75,8 @@ export const protectCustomer = async (req, res, next) => {
       })
     }
 
-    // Check if customer is active
-    if (customer.status !== 'active') {
+    // Check if customer is active or vip
+    if (customer.status === 'inactive') {
       return res.status(401).json({
         success: false,
         message: 'Tài khoản đã bị khóa',

@@ -101,7 +101,10 @@
         <template v-slot:body-cell-customer="props">
           <q-td :props="props">
             <div class="flex items-center gap-2">
-              <q-avatar size="32px" color="blue-2" text-color="blue-8">
+              <q-avatar size="32px" v-if="props.row.customerAvatar">
+                <img :src="props.row.customerAvatar" :alt="props.value" />
+              </q-avatar>
+              <q-avatar size="32px" color="blue-2" text-color="blue-8" v-else>
                 <i class="fal fa-user"></i>
               </q-avatar>
               <div>
@@ -420,9 +423,10 @@ const loadOrders = async () => {
         id: order.orderId || order._id,
         _id: order._id,
         date: formatDate(order.createdAt),
-        customer: order.customerInfo?.fullName || 'N/A',
-        customerEmail: order.customerInfo?.email || 'N/A',
-        customerPhone: order.customerInfo?.phone || 'N/A',
+        customer: order.customer?.fullName || order.customerInfo?.fullName || 'Khách vãng lai',
+        customerEmail: order.customer?.email || order.customerInfo?.email || 'N/A',
+        customerPhone: order.customer?.phone || order.customerInfo?.phone || 'N/A',
+        customerAvatar: order.customer?.avatar || null,
         items: order.items || [],
         total: order.total || 0,
         subtotal: order.subtotal || 0,

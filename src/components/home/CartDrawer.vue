@@ -132,6 +132,7 @@
 </template>
 
 <script setup>
+import { storeToRefs } from 'pinia'
 import { useCartStore } from 'src/stores/useCartStore'
 import { useStoreData } from 'src/composables/useStoreData'
 import { useRouter } from 'vue-router'
@@ -139,15 +140,9 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const { formatPrice } = useStoreData()
 
-const {
-  cartItems,
-  showCartDrawer,
-  totalPrice,
-  isEmpty,
-  removeFromCart,
-  updateQuantity,
-  toggleCartDrawer,
-} = useCartStore()
+const cartStore = useCartStore()
+const { cartItems, showCartDrawer, totalPrice, isEmpty } = storeToRefs(cartStore)
+const { removeFromCart, updateQuantity, toggleCartDrawer } = cartStore
 
 const goToCheckout = () => {
   toggleCartDrawer(false)

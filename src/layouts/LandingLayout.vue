@@ -1,9 +1,9 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-white">
     <header class="fixed top-0 left-0 right-0 z-30">
-      <div class="flex ml-20 items-center justify-center py-4">
+      <div class="flex sm:ml-20 items-center justify-center py-4">
         <router-link to="/" class="text-white font-bold text-lg">
-          <img src="/logo.png" alt="Logo" class="h-12" />
+          <div class="text-logo text-gray-900">{{ settingsStore.storeName || 'Louie Store' }}</div>
         </router-link>
       </div>
     </header>
@@ -35,14 +35,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useCartStore } from 'src/stores/useCartStore'
+import { useSettingsStore } from 'src/stores/useSettingsStore'
 import SideBarMenu from 'src/components/home/SideBarMenu.vue'
 import CartDrawer from 'src/components/home/CartDrawer.vue'
 import MenuDrawer from 'src/components/home/MenuDrawer.vue'
 
 const showMenuDrawer = ref(false)
-const { totalItems, showCartDrawer, toggleCartDrawer: toggleCart } = useCartStore()
+const cartStore = useCartStore()
+const { totalItems, showCartDrawer } = storeToRefs(cartStore)
+const { toggleCartDrawer: toggleCart } = cartStore
+const settingsStore = useSettingsStore()
 
 const toggleMenuDrawer = (show) => {
   showMenuDrawer.value = show
@@ -59,4 +64,8 @@ const toggleCartDrawer = (show) => {
     showMenuDrawer.value = false
   }
 }
+
+onMounted(() => {
+  settingsStore.fetchPublicSettings()
+})
 </script>

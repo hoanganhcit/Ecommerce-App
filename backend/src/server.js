@@ -4,6 +4,8 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import morgan from 'morgan'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 import connectDB from './config/database.js'
 
 // Load env vars
@@ -14,6 +16,27 @@ connectDB()
 
 // Initialize express app
 const app = express()
+const httpServer = createServer(app)
+
+// Initialize Socket.IO with CORS
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    credentials: true,
+  },
+})
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('📡 Client connected:', socket.id)
+
+  socket.on('disconnect', () => {
+    console.log('📡 Client disconnected:', socket.id)
+  })
+})
+
+// Make io accessible to routes
+app.set('io', io)
 
 // Middleware
 // Configure helmet to allow cross-origin resource sharing for images
@@ -55,6 +78,8 @@ import productRoutes from './routes/products.js'
 import orderRoutes from './routes/orders.js'
 import customerRoutes from './routes/customers.js'
 import categoryRoutes from './routes/categories.js'
+import analyticsRoutes from './routes/analytics.js'
+import settingsRoutes from './routes/settings.js'
 
 // Use routes
 app.use('/api/auth', authRoutes)
@@ -62,6 +87,8 @@ app.use('/api/products', productRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/categories', categoryRoutes)
+app.use('/api/analytics', analyticsRoutes)
+app.use('/api/settings', settingsRoutes)
 
 // Error handling middleware
 app.use((err, req, res) => {
@@ -83,6 +110,7 @@ app.use((req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+  console.log(`📡 Socket.IO server is ready`)
 })

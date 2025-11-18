@@ -22,7 +22,10 @@ export const getProducts = async (req, res) => {
     // Build query
     const query = { isActive: true }
 
-    if (category) query.category = category
+    if (category) {
+      // Support filtering by category when products can have multiple categories
+      query.category = { $in: [category] }
+    }
     if (search) query.name = { $regex: search, $options: 'i' }
 
     if (minPrice || maxPrice) {

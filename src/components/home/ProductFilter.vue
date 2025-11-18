@@ -68,57 +68,17 @@
             <i class="fal fa-list mr-2"></i>Danh mục
           </div>
           <ul class="space-y-1">
-            <li v-for="category in rootCategories" :key="category.id">
-              <!-- Parent Category -->
-              <div class="flex items-center">
-                <button
-                  @click="$emit('update:selectedCategory', category.id)"
-                  :class="[
-                    'flex-1 text-left px-3 py-2 rounded-lg text-sm transition-all hover:text-blue-500 hover:bg-blue-50',
-                    selectedCategory === category.id
-                      ? 'text-blue-600 font-semibold bg-blue-50'
-                      : 'text-gray-900',
-                  ]"
-                >
-                  {{ category.name }}
-                </button>
-                <button
-                  v-if="hasChildren(category.id)"
-                  @click="toggleCategory(category.id)"
-                  class="p-1.5 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-                >
-                  <i
-                    :class="[
-                      'fal text-xs transition-transform w-3',
-                      expandedCategories.includes(category.id)
-                        ? 'fa-minus text-gray-700'
-                        : 'fa-plus text-gray-500',
-                    ]"
-                  ></i>
-                </button>
-                <span v-else class="w-7 flex-shrink-0"></span>
-              </div>
-
-              <!-- Children Categories -->
-              <ul
-                v-if="expandedCategories.includes(category.id) && hasChildren(category.id)"
-                class="ml-7 mt-1 border-l-2 border-gray-200 pl-3 space-y-1"
-              >
-                <li v-for="child in getChildren(category.id)" :key="child.id">
-                  <button
-                    @click="$emit('update:selectedCategory', child.id)"
-                    :class="[
-                      'w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all hover:text-blue-500 hover:bg-blue-50',
-                      selectedCategory === child.id
-                        ? 'text-blue-600 font-semibold bg-blue-50'
-                        : 'text-gray-700',
-                    ]"
-                  >
-                    {{ child.name }}
-                  </button>
-                </li>
-              </ul>
-            </li>
+            <CategoryTreeItem
+              v-for="category in rootCategories"
+              :key="category.id"
+              :category="category"
+              :categories="categories"
+              :selectedCategory="selectedCategory"
+              :expandedCategories="expandedCategories"
+              :level="0"
+              @select-category="$emit('update:selectedCategory', $event)"
+              @toggle-expand="toggleCategory"
+            />
           </ul>
         </div>
 
@@ -235,6 +195,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import CategoryTreeItem from './CategoryTreeItem.vue'
 
 // Props
 const props = defineProps({
@@ -385,14 +346,6 @@ const toggleCategory = (categoryId) => {
   }
 }
 
-const hasChildren = (parentId) => {
-  return props.categories.some((cat) => {
-    if (!cat.parent) return false
-    const catParentId = typeof cat.parent === 'object' ? cat.parent.id : cat.parent
-    return catParentId === parentId
-  })
-}
-
 const getChildren = (parentId) => {
   return props.categories.filter((cat) => {
     if (!cat.parent) return false
@@ -400,6 +353,26 @@ const getChildren = (parentId) => {
     return catParentId === parentId
   })
 }
+
+// Get all descendant category IDs (recursive)
+const getAllDescendantIds = (categoryId) => {
+  const descendants = []
+  const children = getChildren(categoryId)
+
+  children.forEach((child) => {
+    descendants.push(child.id)
+    // Recursively get children of this child
+    const grandChildren = getAllDescendantIds(child.id)
+    descendants.push(...grandChildren)
+  })
+
+  return descendants
+}
+
+// Expose method to parent component if needed
+defineExpose({
+  getAllDescendantIds,
+})
 </script>
 
 <style scoped></style>

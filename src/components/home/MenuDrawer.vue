@@ -9,7 +9,9 @@
     <div class="flex flex-col h-full">
       <!-- Header -->
       <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-        <div class="text-xl font-light tracking-widest text-uppercase text-gray-100">Ecommerce</div>
+        <div class="text-xl font-light tracking-widest text-uppercase text-gray-100">
+          {{ settingsStore.storeName || 'Louie Store' }}
+        </div>
         <button
           @click="toggleMenuDrawer(false)"
           class="w-8 h-8 flex items-center justify-center text-gray-100 hover:text-gray-100 hover:bg-gray-800 rounded-full transition-all"
@@ -111,11 +113,12 @@
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/stores/useAuthStore'
+import { useSettingsStore } from 'src/stores/useSettingsStore'
 
 const router = useRouter()
 const $q = useQuasar()
 const { isAuthenticated, userName, userAvatar, logout } = useAuthStore()
-
+const settingsStore = useSettingsStore()
 // Props
 defineProps({
   showMenuDrawer: {

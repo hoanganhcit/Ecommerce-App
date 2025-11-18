@@ -1,4 +1,23 @@
 import Address from '../models/Address.js'
+import Customer from '../models/Customer.js'
+
+// Helper function to sync default address to Customer model
+const syncDefaultAddressToCustomer = async (customerId) => {
+  try {
+    const defaultAddress = await Address.findOne({
+      customer: customerId,
+      isDefault: true,
+    })
+
+    if (defaultAddress) {
+      await Customer.findByIdAndUpdate(customerId, {
+        address: defaultAddress.fullAddress,
+      })
+    }
+  } catch (error) {
+    console.error('Error syncing default address:', error)
+  }
+}
 
 // @desc    Get all addresses for customer
 // @route   GET /api/customers/addresses
@@ -43,6 +62,11 @@ export const createAddress = async (req, res) => {
       isDefault: shouldBeDefault,
     })
 
+    // Sync default address to Customer model
+    if (shouldBeDefault) {
+      await syncDefaultAddressToCustomer(req.customer._id)
+    }
+
     res.status(201).json({
       success: true,
       message: 'Thêm địa chỉ thành công',
@@ -85,6 +109,11 @@ export const updateAddress = async (req, res) => {
 
     await address.save()
 
+    // Sync default address to Customer model if this is default
+    if (address.isDefault) {
+      await syncDefaultAddressToCustomer(req.customer._id)
+    }
+
     res.json({
       success: true,
       message: 'Cập nhật địa chỉ thành công',
@@ -122,6 +151,9 @@ export const setDefaultAddress = async (req, res) => {
     // Set this address as default
     address.isDefault = true
     await address.save()
+
+    // Sync to Customer model
+    await syncDefaultAddressToCustomer(req.customer._id)
 
     res.json({
       success: true,
@@ -163,6 +195,11 @@ export const deleteAddress = async (req, res) => {
       if (anotherAddress) {
         anotherAddress.isDefault = true
         await anotherAddress.save()
+        // Sync new default to Customer
+        await syncDefaultAddressToCustomer(req.customer._id)
+      } else {
+        // No more addresses, clear Customer address field
+        await Customer.findByIdAndUpdate(req.customer._id, { address: '' })
       }
     }
 

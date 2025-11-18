@@ -152,7 +152,7 @@
       <!-- Top Customers -->
       <div class="bg-white rounded-lg border border-gray-200 p-6">
         <div class="text-lg font-semibold text-gray-900 mb-4">Khách hàng VIP</div>
-        <div class="space-y-3">
+        <div v-if="topCustomers.length > 0" class="space-y-3">
           <div
             v-for="customer in topCustomers"
             :key="customer.id"
@@ -166,6 +166,12 @@
               <div class="text-xs text-gray-500">{{ customer.orders }} đơn hàng</div>
             </div>
             <div class="text-sm font-semibold text-gray-900">{{ formatPrice(customer.spent) }}</div>
+          </div>
+        </div>
+        <div v-else class="flex items-center justify-center h-48">
+          <div class="text-center text-gray-400">
+            <i class="fal fa-users text-4xl mb-2"></i>
+            <p class="text-sm">Chưa có khách hàng VIP</p>
           </div>
         </div>
       </div>
@@ -213,7 +219,7 @@
 
         <template v-slot:body-cell-growth="props">
           <q-td :props="props">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1 justify-center">
               <i
                 :class="[
                   props.value > 0
@@ -239,8 +245,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 const $q = useQuasar()
 
@@ -248,6 +255,8 @@ const $q = useQuasar()
 const selectedTimeRange = ref('month')
 const customStartDate = ref('')
 const customEndDate = ref('')
+const loading = ref(false)
+const analyticsData = ref(null)
 
 // Time Ranges
 const timeRanges = [
@@ -258,236 +267,121 @@ const timeRanges = [
   { label: 'Năm nay', value: 'year' },
 ]
 
+// Fetch analytics data
+const fetchAnalytics = async () => {
+  try {
+    loading.value = true
+    const token = localStorage.getItem('adminToken')
+
+    if (!token) {
+      $q.notify({
+        type: 'warning',
+        message: 'Vui lòng đăng nhập lại',
+        position: 'top',
+      })
+      return
+    }
+
+    const params = { timeRange: selectedTimeRange.value }
+    if (customStartDate.value && customEndDate.value) {
+      params.startDate = customStartDate.value
+      params.endDate = customEndDate.value
+    }
+
+    const response = await axios.get('http://localhost:5000/api/analytics/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+      params,
+    })
+
+    analyticsData.value = response.data.data
+  } catch (error) {
+    console.error('Error fetching analytics:', error)
+    $q.notify({
+      type: 'negative',
+      message: error.response?.data?.message || 'Không thể tải dữ liệu thống kê',
+      position: 'top',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
 // Revenue Stats
-const revenueStats = computed(() => [
-  {
-    label: 'Tổng doanh thu',
-    value: formatPrice(138200000),
-    icon: 'fal fa-dollar-sign',
-    bgColor: 'bg-green-100',
-    iconColor: 'text-green-600',
-    trend: 12.5,
-    subtitle: 'So với tháng trước',
-  },
-  {
-    label: 'Đơn hàng mới',
-    value: '84',
-    icon: 'fal fa-shopping-cart',
-    bgColor: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-    trend: 8.2,
-    subtitle: '+7 so với tuần trước',
-  },
-  {
-    label: 'Khách hàng mới',
-    value: '32',
-    icon: 'fal fa-users',
-    bgColor: 'bg-purple-100',
-    iconColor: 'text-purple-600',
-    trend: 15.3,
-    subtitle: '+5 so với tuần trước',
-  },
-  {
-    label: 'Tỷ lệ chuyển đổi',
-    value: '3.24%',
-    icon: 'fal fa-chart-line',
-    bgColor: 'bg-orange-100',
-    iconColor: 'text-orange-600',
-    trend: -2.1,
-    subtitle: 'Từ tổng lượt truy cập',
-  },
-])
+const revenueStats = computed(() => {
+  if (!analyticsData.value) return []
+
+  const stats = analyticsData.value.revenueStats
+
+  return [
+    {
+      label: 'Tổng doanh thu',
+      value: formatPrice(stats.totalRevenue || 0),
+      icon: 'fal fa-dollar-sign',
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600',
+      trend: stats.revenueTrend || 0,
+      subtitle: 'So với kỳ trước',
+    },
+    {
+      label: 'Đơn hàng mới',
+      value: (stats.totalOrders || 0).toString(),
+      icon: 'fal fa-shopping-cart',
+      bgColor: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      trend: stats.orderTrend || 0,
+      subtitle: 'So với kỳ trước',
+    },
+    {
+      label: 'Khách hàng mới',
+      value: (stats.newCustomers || 0).toString(),
+      icon: 'fal fa-users',
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+      trend: stats.customerTrend || 0,
+      subtitle: 'So với kỳ trước',
+    },
+    {
+      label: 'Tỷ lệ chuyển đổi',
+      value: (stats.conversionRate || 0).toFixed(2) + '%',
+      icon: 'fal fa-chart-line',
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      trend: 0,
+      subtitle: 'Từ tổng lượt truy cập',
+    },
+  ]
+})
 
 // Top Products
-const topProducts = ref([
-  {
-    id: 1,
-    name: 'Áo thun nam basic',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop',
-    sold: 156,
-    revenue: 78000000,
-  },
-  {
-    id: 2,
-    name: 'Quần jean nam slim fit',
-    image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=100&h=100&fit=crop',
-    sold: 124,
-    revenue: 62000000,
-  },
-  {
-    id: 3,
-    name: 'Áo khoác bomber',
-    image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=100&h=100&fit=crop',
-    sold: 98,
-    revenue: 49000000,
-  },
-  {
-    id: 4,
-    name: 'Giày thể thao',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop',
-    sold: 87,
-    revenue: 43500000,
-  },
-  {
-    id: 5,
-    name: 'Áo hoodie',
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=100&h=100&fit=crop',
-    sold: 76,
-    revenue: 38000000,
-  },
-])
+const topProducts = computed(() => analyticsData.value?.topProducts || [])
 
 // Top Customers
-const topCustomers = ref([
-  {
-    id: 1,
-    name: 'Lê Văn Cường',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    orders: 15,
-    spent: 22400000,
-  },
-  {
-    id: 2,
-    name: 'Vũ Thị Phương',
-    avatar: 'https://i.pravatar.cc/150?img=20',
-    orders: 20,
-    spent: 31200000,
-  },
-  {
-    id: 3,
-    name: 'Nguyễn Văn An',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    orders: 12,
-    spent: 15600000,
-  },
-  {
-    id: 4,
-    name: 'Ngô Thị Hoa',
-    avatar: 'https://i.pravatar.cc/150?img=24',
-    orders: 10,
-    spent: 13500000,
-  },
-  {
-    id: 5,
-    name: 'Mai Thị My',
-    avatar: 'https://i.pravatar.cc/150?img=47',
-    orders: 9,
-    spent: 11700000,
-  },
-])
+const topCustomers = computed(() => analyticsData.value?.topCustomers || [])
 
 // Recent Activities
-const recentActivities = ref([
-  {
-    id: 1,
-    title: 'Đơn hàng #ORD001 đã được giao',
-    time: '5 phút trước',
-    icon: 'fal fa-check-circle',
-    iconBg: 'bg-green-100',
-    iconColor: 'text-green-600',
-  },
-  {
-    id: 2,
-    title: 'Khách hàng mới đăng ký: Trần Văn B',
-    time: '15 phút trước',
-    icon: 'fal fa-user-plus',
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-  },
-  {
-    id: 3,
-    title: 'Sản phẩm "Áo thun basic" sắp hết hàng',
-    time: '1 giờ trước',
-    icon: 'fal fa-exclamation-triangle',
-    iconBg: 'bg-yellow-100',
-    iconColor: 'text-yellow-600',
-  },
-  {
-    id: 4,
-    title: 'Đơn hàng #ORD002 đang được xử lý',
-    time: '2 giờ trước',
-    icon: 'fal fa-box',
-    iconBg: 'bg-purple-100',
-    iconColor: 'text-purple-600',
-  },
-  {
-    id: 5,
-    title: 'Review 5 sao từ Nguyễn Văn A',
-    time: '3 giờ trước',
-    icon: 'fal fa-star',
-    iconBg: 'bg-orange-100',
-    iconColor: 'text-orange-600',
-  },
-])
+const recentActivities = computed(() => analyticsData.value?.recentActivities || [])
 
 // Sales Table
 const salesColumns = [
   { name: 'date', label: 'Ngày', field: 'date', align: 'left' },
   { name: 'orders', label: 'Đơn hàng', field: 'orders', align: 'center' },
-  { name: 'revenue', label: 'Doanh thu', field: 'revenue', align: 'right' },
+  { name: 'revenue', label: 'Doanh thu', field: 'revenue', align: 'center' },
   { name: 'customers', label: 'Khách hàng', field: 'customers', align: 'center' },
-  { name: 'avgOrder', label: 'TB/Đơn', field: 'avgOrder', align: 'right' },
+  { name: 'avgOrder', label: 'TB/Đơn', field: 'avgOrder', align: 'center' },
   { name: 'growth', label: 'Tăng trưởng', field: 'growth', align: 'center' },
 ]
 
-const salesData = ref([
-  {
-    date: '12/11/2025',
-    orders: 15,
-    revenue: 18500000,
-    customers: 12,
-    avgOrder: 1233333,
-    growth: 12,
-  },
-  {
-    date: '11/11/2025',
-    orders: 23,
-    revenue: 28900000,
-    customers: 18,
-    avgOrder: 1256522,
-    growth: 18,
-  },
-  {
-    date: '10/11/2025',
-    orders: 18,
-    revenue: 22100000,
-    customers: 14,
-    avgOrder: 1227778,
-    growth: 5,
-  },
-  {
-    date: '09/11/2025',
-    orders: 12,
-    revenue: 15600000,
-    customers: 10,
-    avgOrder: 1300000,
-    growth: -3,
-  },
-  {
-    date: '08/11/2025',
-    orders: 20,
-    revenue: 25400000,
-    customers: 16,
-    avgOrder: 1270000,
-    growth: 15,
-  },
-  {
-    date: '07/11/2025',
-    orders: 16,
-    revenue: 19800000,
-    customers: 13,
-    avgOrder: 1237500,
-    growth: 8,
-  },
-  {
-    date: '06/11/2025',
-    orders: 14,
-    revenue: 17200000,
-    customers: 11,
-    avgOrder: 1228571,
-    growth: -5,
-  },
-])
+const salesData = computed(() => analyticsData.value?.salesData || [])
+
+// Lifecycle
+onMounted(() => {
+  fetchAnalytics()
+})
+
+// Watch time range changes
+watch(selectedTimeRange, () => {
+  fetchAnalytics()
+})
 
 // Methods
 const formatPrice = (price) => {
@@ -499,15 +393,11 @@ const applyCustomRange = () => {
     $q.notify({
       type: 'warning',
       message: 'Vui lòng chọn khoảng thời gian',
-      position: 'top-right',
+      position: 'top',
     })
     return
   }
-  $q.notify({
-    type: 'positive',
-    message: 'Đã áp dụng khoảng thời gian tùy chỉnh',
-    position: 'top-right',
-  })
+  fetchAnalytics()
 }
 </script>
 

@@ -1,4 +1,5 @@
 import Customer from '../models/Customer.js'
+import Address from '../models/Address.js'
 
 // @desc    Get all customers
 // @route   GET /api/customers
@@ -21,11 +22,30 @@ export const getCustomers = async (req, res) => {
 
     const customers = await Customer.find(query).sort('-createdAt').limit(Number(limit)).skip(skip)
 
+    // Get addresses for all customers
+    const customerIds = customers.map((c) => c._id)
+    const addresses = await Address.find({ customer: { $in: customerIds } })
+
+    // Map addresses to customers
+    const customersWithAddresses = customers.map((customer) => {
+      const customerAddresses = addresses.filter(
+        (addr) => addr.customer.toString() === customer._id.toString(),
+      )
+      const defaultAddress =
+        customerAddresses.find((addr) => addr.isDefault) || customerAddresses[0]
+
+      return {
+        ...customer.toObject(),
+        address: defaultAddress ? defaultAddress.fullAddress : null,
+        addresses: customerAddresses,
+      }
+    })
+
     const total = await Customer.countDocuments(query)
 
     res.json({
       success: true,
-      data: customers,
+      data: customersWithAddresses,
       pagination: {
         page: Number(page),
         limit: Number(limit),

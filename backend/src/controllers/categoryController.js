@@ -1,4 +1,5 @@
 import Category from '../models/Category.js'
+import Product from '../models/Product.js'
 
 // @desc    Get all categories
 // @route   GET /api/categories
@@ -8,9 +9,20 @@ export const getCategories = async (req, res) => {
     // Return all categories (for admin) or only active ones (for public)
     const categories = await Category.find({}).populate('parent', 'name').sort('order')
 
+    // Count products for each category
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (category) => {
+        const productCount = await Product.countDocuments({ category: category._id })
+        return {
+          ...category.toObject(),
+          productCount,
+        }
+      }),
+    )
+
     res.json({
       success: true,
-      data: categories,
+      data: categoriesWithCount,
     })
   } catch (error) {
     res.status(500).json({

@@ -8,12 +8,12 @@ import {
   getCustomerOrders,
 } from '../controllers/orderController.js'
 import { protect, admin } from '../middleware/auth.js'
-import { protectCustomer } from '../middleware/customerAuth.js'
+import { protectCustomer, optionalCustomerAuth } from '../middleware/customerAuth.js'
 
 const router = express.Router()
 
-// Public/Customer routes
-router.post('/', createOrder)
+// Public/Customer routes - optional auth allows both guest and logged-in customers
+router.post('/', optionalCustomerAuth, createOrder)
 
 // Protected customer routes
 router.get(

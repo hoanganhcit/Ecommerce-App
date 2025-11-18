@@ -47,11 +47,15 @@
                 :options="categories"
                 outlined
                 dense
-                label="Category *"
+                label="Categories *"
                 use-input
                 input-debounce="300"
                 @filter="filterCategoryOptions"
-                :rules="[(val) => !!val || 'Category is required']"
+                :rules="[(val) => !!val || 'At least one category is required']"
+                multiple
+                use-chips
+                counter
+                max-values="5"
               >
                 <template v-slot:option="scope">
                   <q-item v-bind="scope.itemProps">
@@ -91,7 +95,7 @@
               dense
               type="number"
               label="Price *"
-              prefix="$"
+              suffix="₫"
               :rules="[(val) => val > 0 || 'Price must be greater than 0']"
             />
 
@@ -101,8 +105,10 @@
               dense
               type="number"
               label="Original Price"
-              prefix="$"
-              hint="Price before discount"
+              suffix="₫"
+              hint="Auto-calculated based on price and discount"
+              readonly
+              bg-color="grey-2"
             />
 
             <q-input
@@ -126,16 +132,30 @@
             />
           </div>
 
-          <div
-            v-if="form.price && form.originalPrice && form.discount"
-            class="mt-4 p-4 bg-blue-50 rounded-lg"
-          >
-            <div class="text-sm text-gray-700">
-              <span class="font-semibold">Final Price:</span>
-              ${{ (form.price * (1 - form.discount / 100)).toFixed(2) }}
-              <span class="text-gray-500 ml-2">
-                (Save ${{ (form.price * (form.discount / 100)).toFixed(2) }})
-              </span>
+          <div v-if="form.price && form.discount > 0" class="mt-4 p-4 bg-blue-50 rounded-lg">
+            <div class="text-sm text-gray-700 space-y-1">
+              <div>
+                <span class="font-semibold">Original Price (Rounded):</span>
+                <span class="text-lg font-bold text-gray-900 ml-2">
+                  {{ formatVND(form.originalPrice) }}
+                </span>
+              </div>
+              <div>
+                <span class="font-semibold">Current Price (after {{ form.discount }}% off):</span>
+                <span class="text-lg font-bold text-green-600 ml-2">{{
+                  formatVND(form.price)
+                }}</span>
+              </div>
+              <div class="text-red-600 font-medium">
+                <span class="font-semibold">You save:</span>
+                {{ formatVND((form.originalPrice || 0) - (form.price || 0)) }}
+              </div>
+            </div>
+          </div>
+          <div v-else-if="form.price && !form.discount" class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div class="text-sm text-gray-600">
+              <i class="ti ti-info-circle"></i>
+              Enter a discount percentage to see the original price calculation
             </div>
           </div>
         </div>
@@ -561,7 +581,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
@@ -578,7 +598,7 @@ const productId = ref(null)
 const form = ref({
   name: '',
   sku: '',
-  category: null,
+  category: [],
   description: '',
   price: null,
   originalPrice: null,
@@ -641,6 +661,33 @@ onMounted(async () => {
   }
 })
 
+// Watch for changes in price and discount to auto-calculate originalPrice
+watch(
+  () => [form.value.price, form.value.discount],
+  ([newPrice, newDiscount]) => {
+    if (newPrice && newDiscount > 0) {
+      // Calculate original price: price = originalPrice * (1 - discount/100)
+      // Therefore: originalPrice = price / (1 - discount/100)
+      const calculated = newPrice / (1 - newDiscount / 100)
+      // Round to nearest 1000 VND
+      form.value.originalPrice = Math.round(calculated / 1000) * 1000
+    } else if (newPrice && (!newDiscount || newDiscount === 0)) {
+      // If no discount, original price should be same as price or null
+      form.value.originalPrice = null
+    }
+  },
+  { deep: true },
+)
+
+// Format VND currency
+const formatVND = (value) => {
+  if (!value) return '0₫'
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(value)
+}
+
 const fetchCategories = async () => {
   try {
     const response = await axios.get('http://localhost:5000/api/categories')
@@ -691,29 +738,70 @@ const loadProductData = async (id) => {
     if (response.data.success) {
       const product = response.data.data
 
-      // Build variants object from sizes and colors
+      // Build variants object from backend variants array
       const variantsObj = {}
-      if (
+      if (product.variants && product.variants.length > 0) {
+        // Group variants by size
+        product.variants.forEach((variant) => {
+          if (!variantsObj[variant.size]) {
+            variantsObj[variant.size] = { colors: [] }
+          }
+
+          // Find color info from product.colors
+          const colorInfo = product.colors?.find((c) => c.name === variant.color) || {
+            name: variant.color,
+            hex: '#000000',
+          }
+
+          variantsObj[variant.size].colors.push({
+            name: variant.color,
+            hex: colorInfo.hex,
+            price: product.price || 0,
+            stock: variant.stock || 0,
+          })
+        })
+      } else if (
         product.sizes &&
         product.sizes.length > 0 &&
         product.colors &&
         product.colors.length > 0
       ) {
+        // Fallback: build from sizes and colors if no variants
         product.sizes.forEach((size) => {
           variantsObj[size] = {
             colors: product.colors.map((color) => ({
               ...color,
               price: product.price || 0,
-              stock: 0, // Backend doesn't store individual stock, default to 0
+              stock: 0,
             })),
           }
         })
       }
 
+      // Handle multiple categories
+      let categoryValues = []
+      if (Array.isArray(product.category)) {
+        // If category is already an array
+        categoryValues = product.category
+          .map((cat) => {
+            const catId = typeof cat === 'object' ? cat._id : cat
+            const categoryOption = allCategoryOptions.value.find((opt) => opt.value === catId)
+            return categoryOption || null
+          })
+          .filter(Boolean)
+      } else if (product.category) {
+        // If single category, convert to array
+        const catId = typeof product.category === 'object' ? product.category._id : product.category
+        const categoryOption = allCategoryOptions.value.find((opt) => opt.value === catId)
+        if (categoryOption) {
+          categoryValues = [categoryOption]
+        }
+      }
+
       form.value = {
         name: product.name,
         sku: product.sku || '',
-        category: product.category?._id || product.category || null,
+        category: categoryValues,
         description: product.description || '',
         price: product.price,
         originalPrice: product.originalPrice || null,
@@ -732,16 +820,6 @@ const loadProductData = async (id) => {
           origin: product.specifications?.origin || '',
           weight: product.specifications?.weight || '',
         },
-      }
-
-      // Find matching category option to display name instead of ID
-      if (product.category?._id) {
-        const categoryOption = allCategoryOptions.value.find(
-          (opt) => opt.value === product.category._id,
-        )
-        if (categoryOption) {
-          form.value.category = categoryOption
-        }
       }
 
       // Populate sizeFormsData and selectedSizes for editing
@@ -949,14 +1027,23 @@ const saveProduct = async () => {
     let sizes = []
     let colors = []
     let totalStock = form.value.stock || 0
+    let variants = []
 
     if (form.value.hasVariants && Object.keys(form.value.variants).length > 0) {
       sizes = Object.keys(form.value.variants)
       const colorMap = new Map()
 
-      // Calculate total stock and collect unique colors
-      Object.values(form.value.variants).forEach((sizeData) => {
+      // Build variants array and calculate total stock
+      Object.entries(form.value.variants).forEach(([size, sizeData]) => {
         sizeData.colors.forEach((color) => {
+          // Add to variants array
+          variants.push({
+            size: size,
+            color: color.name,
+            stock: color.stock || 0,
+            sku: `${form.value.sku || 'PROD'}-${size}-${color.name.replace(/\s+/g, '-').toUpperCase()}`,
+          })
+
           totalStock += color.stock || 0
           if (!colorMap.has(color.hex)) {
             colorMap.set(color.hex, {
@@ -970,6 +1057,11 @@ const saveProduct = async () => {
       colors = Array.from(colorMap.values())
     }
 
+    // Extract category IDs from selected options
+    const categoryIds = Array.isArray(form.value.category)
+      ? form.value.category.map((cat) => (typeof cat === 'object' ? cat.value : cat))
+      : []
+
     // Prepare product data matching Product model
     const productData = {
       name: form.value.name,
@@ -978,12 +1070,12 @@ const saveProduct = async () => {
       price: form.value.price,
       originalPrice: form.value.originalPrice || null,
       discount: form.value.discount || 0,
-      category:
-        typeof form.value.category === 'object' ? form.value.category.value : form.value.category, // Extract value from object or use as-is
+      category: categoryIds, // Send as array
       images: form.value.images,
       thumbnail: form.value.thumbnail || form.value.images[0],
       sizes,
       colors,
+      variants,
       collections,
       tags,
       stock: form.value.hasVariants ? totalStock : form.value.stock || 0,
@@ -997,8 +1089,8 @@ const saveProduct = async () => {
     }
 
     console.log('Product Data to save:', productData)
-    console.log('Category value:', form.value.category)
-    console.log('Category ID:', productData.category)
+    console.log('Category values:', form.value.category)
+    console.log('Category IDs:', productData.category)
 
     let response
     if (isEditMode.value) {
@@ -1051,8 +1143,8 @@ const validateForm = () => {
     $q.notify({ type: 'negative', message: 'Product name is required', position: 'top' })
     return false
   }
-  if (!form.value.category) {
-    $q.notify({ type: 'negative', message: 'Category is required', position: 'top' })
+  if (!form.value.category || form.value.category.length === 0) {
+    $q.notify({ type: 'negative', message: 'At least one category is required', position: 'top' })
     return false
   }
   if (!form.value.price || form.value.price <= 0) {

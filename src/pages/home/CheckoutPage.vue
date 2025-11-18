@@ -27,7 +27,16 @@
         <div class="lg:col-span-2 space-y-6">
           <!-- Customer Information -->
           <div class="bg-white rounded-lg border border-gray-200 p-6">
-            <div class="text-xl font-bold text-gray-900 mb-6">Thông tin khách hàng</div>
+            <div class="mb-6">
+              <div class="text-xl font-bold text-gray-900">Thông tin khách hàng</div>
+              <div v-if="!customer" class="text-sm text-gray-600 mt-2">
+                Nếu là thành viên hãy
+                <router-link to="/home/login" class="text-primary font-medium">
+                  đăng nhập
+                </router-link>
+                để nhận ưu đãi
+              </div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -333,6 +342,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { storeToRefs } from 'pinia'
 import { useCartStore } from 'src/stores/useCartStore'
 import { useStoreData } from 'src/composables/useStoreData'
 import { useAuthStore } from 'src/stores/useAuthStore'
@@ -340,7 +350,9 @@ import axios from 'axios'
 
 const router = useRouter()
 const $q = useQuasar()
-const { cartItems, totalPrice, clearCart } = useCartStore()
+const cartStore = useCartStore()
+const { cartItems, totalPrice } = storeToRefs(cartStore)
+const { clearCart } = cartStore
 const { formatPrice } = useStoreData()
 const { customer, getAuthHeader } = useAuthStore()
 
@@ -348,6 +360,12 @@ const { customer, getAuthHeader } = useAuthStore()
 const isSubmitting = ref(false)
 const voucherCode = ref('')
 const appliedVoucher = ref(null)
+const shippingSettings = ref({
+  defaultFee: 0,
+  freeShippingThreshold: 0,
+  enableFreeShipping: false,
+  zones: [],
+})
 const form = ref({
   fullName: '',
   phone: '',
@@ -468,18 +486,87 @@ watch(
 // Load customer data on mount
 onMounted(async () => {
   await fetchProvinces()
+  await fetchPaymentMethods()
 
   if (customer.value) {
+    await loadCustomerData()
+  }
+})
+
+// Function to load customer data into form
+const loadCustomerData = async () => {
+  if (customer.value) {
+    console.log('Loading customer data:', customer.value)
     form.value.fullName = customer.value.fullName || ''
     form.value.phone = customer.value.phone || ''
     form.value.email = customer.value.email || ''
 
-    const defaultAddress = customer.value.addresses?.find((addr) => addr.isDefault)
-    if (defaultAddress) {
-      form.value.address = defaultAddress.fullAddress || ''
+    // Load default address from Address API
+    try {
+      const response = await axios.get('http://localhost:5000/api/customers/addresses', {
+        headers: getAuthHeader(),
+      })
+
+      if (response.data.success && response.data.data.length > 0) {
+        const defaultAddress =
+          response.data.data.find((addr) => addr.isDefault) || response.data.data[0]
+
+        if (defaultAddress && defaultAddress.fullAddress) {
+          // Parse fullAddress back to form fields
+          // Format: "Số nhà, Phường/Xã, Quận/Huyện, Tỉnh/TP"
+          const parts = defaultAddress.fullAddress.split(', ')
+
+          if (parts.length >= 1) {
+            form.value.address = parts[0] // Số nhà, tên đường
+          }
+
+          // Try to match city
+          if (parts.length >= 4) {
+            const cityName = parts[3]
+            const city = provinces.value.find((p) => p.name === cityName)
+            if (city) {
+              form.value.city = city.value
+
+              // Load districts for this city
+              await fetchDistricts(city.value)
+
+              // Try to match district
+              const districtName = parts[2]
+              const district = districts.value.find((d) => d.name === districtName)
+              if (district) {
+                form.value.district = district.value
+
+                // Load wards for this district
+                await fetchWards(district.value)
+
+                // Try to match ward
+                const wardName = parts[1]
+                const ward = wards.value.find((w) => w.name === wardName)
+                if (ward) {
+                  form.value.ward = ward.value
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading addresses:', error)
+      // Silently fail - user can enter address manually
     }
   }
-})
+}
+
+// Watch customer changes to auto-fill form
+watch(
+  () => customer.value,
+  async (newCustomer) => {
+    if (newCustomer) {
+      await loadCustomerData()
+    }
+  },
+  { immediate: true },
+)
 
 // Available vouchers (mock data)
 const availableVouchers = [
@@ -509,33 +596,48 @@ const availableVouchers = [
   },
 ]
 
-// Payment methods
-const paymentMethods = [
-  {
-    value: 'cod',
-    label: 'Thanh toán khi nhận hàng (COD)',
-    description: 'Thanh toán bằng tiền mặt khi nhận hàng',
-    icon: 'fal fa-money-bill-wave',
-  },
-  {
-    value: 'bank',
-    label: 'Chuyển khoản ngân hàng',
-    description: 'Chuyển khoản qua Internet Banking hoặc ATM',
-    icon: 'fal fa-university',
-  },
-  {
-    value: 'momo',
-    label: 'Ví MoMo',
-    description: 'Thanh toán qua ví điện tử MoMo',
-    icon: 'fal fa-wallet',
-  },
-  {
-    value: 'card',
-    label: 'Thẻ tín dụng/Ghi nợ',
-    description: 'Visa, Mastercard, JCB',
-    icon: 'fal fa-credit-card',
-  },
-]
+// Payment methods - will be fetched from settings
+const paymentMethods = ref([])
+
+// Fetch enabled payment methods and shipping settings from API
+const fetchPaymentMethods = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/settings/public')
+    if (response.data.success) {
+      // Payment methods
+      if (response.data.data.paymentMethods) {
+        const enabledMethods = response.data.data.paymentMethods.filter((m) => m.enabled)
+        if (enabledMethods.length > 0) {
+          paymentMethods.value = enabledMethods.map((m) => ({
+            id: m.id,
+            value: m.id,
+            label: m.name,
+            description: m.description,
+            icon: m.icon,
+            enabled: m.enabled,
+          }))
+          // Set default payment method to first enabled method
+          if (paymentMethods.value.length > 0) {
+            form.value.paymentMethod = paymentMethods.value[0].value
+          }
+        }
+      }
+
+      // Shipping settings
+      if (response.data.data.shipping) {
+        shippingSettings.value = {
+          defaultFee: response.data.data.shipping.defaultFee,
+          freeShippingThreshold: response.data.data.shipping.freeShippingThreshold,
+          enableFreeShipping: response.data.data.shipping.enableFreeShipping,
+          zones: response.data.data.shipping.zones || [],
+        }
+        console.log('Shipping settings loaded:', shippingSettings.value)
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching payment methods:', error)
+  }
+}
 
 // Computed
 const isEmpty = computed(() => cartItems.value.length === 0)
@@ -543,12 +645,48 @@ const isEmpty = computed(() => cartItems.value.length === 0)
 const subtotal = computed(() => totalPrice.value)
 
 const shippingFee = computed(() => {
+  console.log('Shipping calculation:', {
+    shippingSettings: shippingSettings.value,
+    subtotal: subtotal.value,
+    appliedVoucher: appliedVoucher.value,
+    city: form.value.city,
+    enableFreeShipping: shippingSettings.value.enableFreeShipping,
+    freeShippingThreshold: shippingSettings.value.freeShippingThreshold,
+    meetsThreshold: subtotal.value >= shippingSettings.value.freeShippingThreshold,
+  })
+
   // Check if freeship voucher is applied
   if (appliedVoucher.value?.type === 'freeship') {
+    console.log('Freeship voucher applied')
     return 0
   }
+
+  // Check if free shipping is enabled and threshold is met
+  if (
+    shippingSettings.value.enableFreeShipping === true &&
+    subtotal.value >= shippingSettings.value.freeShippingThreshold
+  ) {
+    console.log('Free shipping threshold met - returning 0')
+    return 0
+  }
+
+  // Check if there's a zone-specific fee based on selected city
+  if (form.value.city) {
+    const cityName = provinces.value.find((p) => p.value === form.value.city)?.name || ''
+    const zone = shippingSettings.value.zones.find(
+      (z) =>
+        cityName.toLowerCase().includes(z.name.toLowerCase()) ||
+        z.name.toLowerCase().includes(cityName.toLowerCase()),
+    )
+    if (zone) {
+      console.log('Zone shipping fee:', zone.fee)
+      return zone.fee
+    }
+  }
+
   // Default shipping fee
-  return 30000
+  console.log('Default shipping fee:', shippingSettings.value.defaultFee)
+  return shippingSettings.value.defaultFee
 })
 
 const discount = computed(() => {
@@ -566,6 +704,21 @@ const total = computed(() => {
   const totalBeforeDiscount = subtotal.value + shippingFee.value
   return totalBeforeDiscount - discount.value
 })
+
+// Watch subtotal changes to debug shipping fee calculation
+watch(
+  () => subtotal.value,
+  (newSubtotal) => {
+    console.log('Subtotal changed:', {
+      newSubtotal,
+      freeShippingThreshold: shippingSettings.value.freeShippingThreshold,
+      enableFreeShipping: shippingSettings.value.enableFreeShipping,
+      shouldBeFree:
+        newSubtotal >= shippingSettings.value.freeShippingThreshold &&
+        shippingSettings.value.enableFreeShipping,
+    })
+  },
+)
 
 // Methods
 const applyVoucher = () => {
@@ -707,9 +860,15 @@ const handlePlaceOrder = async () => {
         timeout: 3000,
       })
 
-      // Redirect to orders page
+      // Redirect based on authentication status
       setTimeout(() => {
-        router.push('/orders')
+        if (customer.value) {
+          // Logged in customer - redirect to orders page
+          router.push('/orders')
+        } else {
+          // Guest - redirect to shop to continue shopping
+          router.push('/shop')
+        }
       }, 2000)
     }
   } catch (error) {

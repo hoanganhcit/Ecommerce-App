@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
-      required: true,
+      required: false, // Allow guest checkout
     },
     items: [
       {

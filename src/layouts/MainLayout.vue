@@ -20,8 +20,14 @@
         <div>
           <!-- Logo -->
           <div class="flex items-center gap-2 p-4">
-            <img src="/favicon.ico" alt="Logo" class="h-10 w-10 object-contain" />
-            <span class="text-lg font-semibold text-gray-800"> Ecommerce Admin </span>
+            <img
+              :src="settingsStore.storeLogo || '/favicon.ico'"
+              alt="Store Logo"
+              class="h-10 w-10 object-contain"
+            />
+            <span class="text-lg font-semibold text-gray-800">
+              {{ settingsStore.storeName || 'Ecommerce Admin' }}
+            </span>
           </div>
 
           <!-- Menu chính -->
@@ -69,7 +75,13 @@
                   active-class="bg-blue-100 text-blue-700 font-semibold"
                 >
                   <q-icon :name="item.icon" size="14px" />
-                  <span>{{ item.label }}</span>
+                  <span class="flex-1">{{ item.label }}</span>
+                  <q-badge
+                    v-if="item.label === 'Orders' && pendingOrdersCount > 0"
+                    color="red"
+                    :label="pendingOrdersCount"
+                    class="ml-auto"
+                  />
                 </RouterLink>
               </li>
             </ul>
@@ -133,13 +145,18 @@
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useSettingsStore } from 'src/stores/useSettingsStore'
+import { io } from 'socket.io-client'
 
 const route = useRoute()
 const router = useRouter()
 const $q = useQuasar()
+const settingsStore = useSettingsStore()
 const pageTitle = ref('Home')
 const userDataKey = ref(0) // Key để force re-render
 const leftDrawerOpen = ref(false)
+const pendingOrdersCount = ref(0)
+let socket = null
 
 // Toggle drawer
 const toggleLeftDrawer = () => {
@@ -167,12 +184,118 @@ const handleUserUpdate = () => {
   userDataKey.value++ // Trigger re-compute
 }
 
+// Fetch pending orders count
+const fetchPendingOrders = async () => {
+  try {
+    const token = localStorage.getItem('adminToken')
+    if (!token) return
+
+    const response = await fetch('http://localhost:5000/api/orders?status=pending&limit=1000', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      pendingOrdersCount.value = data.data?.length || 0
+    }
+  } catch (error) {
+    console.error('Failed to fetch pending orders:', error)
+  }
+}
+
+// Setup Socket.IO for real-time notifications
+const setupSocket = () => {
+  // Connect to Socket.IO server
+  socket = io('http://localhost:5000', {
+    transports: ['websocket', 'polling'],
+  })
+
+  socket.on('connect', () => {
+    console.log('📡 Connected to Socket.IO server')
+  })
+
+  socket.on('disconnect', () => {
+    console.log('📡 Disconnected from Socket.IO server')
+  })
+
+  // Listen for new order events
+  socket.on('newOrder', (orderData) => {
+    console.log('🔔 New order received:', orderData)
+
+    // Increment pending orders count
+    pendingOrdersCount.value++
+
+    // Show notification
+    $q.notify({
+      type: 'positive',
+      message: `New order from ${orderData.customerName}`,
+      caption: `Order ID: ${orderData.orderId}`,
+      position: 'top-right',
+      timeout: 5000,
+      actions: [
+        {
+          label: 'View',
+          color: 'white',
+          handler: () => {
+            router.push('/admin/orders')
+          },
+        },
+      ],
+    })
+
+    // Play notification sound (optional)
+    try {
+      const audio = new Audio('/notification.mp3')
+      audio.volume = 0.5
+      audio.play().catch(() => {
+        // Ignore if audio playback fails
+      })
+    } catch {
+      // Ignore audio errors
+    }
+  })
+
+  // Listen for order status changes
+  socket.on('orderStatusChanged', (data) => {
+    console.log('📦 Order status changed:', data)
+
+    // Update pending orders count from server
+    pendingOrdersCount.value = data.pendingCount
+
+    // Show notification for important status changes
+    if (data.newStatus === 'cancelled' || data.newStatus === 'delivered') {
+      const statusText = data.newStatus === 'cancelled' ? 'cancelled' : 'delivered'
+      $q.notify({
+        type: data.newStatus === 'cancelled' ? 'warning' : 'positive',
+        message: `Order ${data.orderId} ${statusText}`,
+        position: 'top-right',
+        timeout: 3000,
+      })
+    }
+  })
+}
+
 onMounted(() => {
   window.addEventListener('user-updated', handleUserUpdate)
+  settingsStore.fetchPublicSettings()
+
+  // Fetch pending orders initially
+  fetchPendingOrders()
+
+  // Setup Socket.IO for real-time updates
+  setupSocket()
 })
 
 onUnmounted(() => {
   window.removeEventListener('user-updated', handleUserUpdate)
+
+  // Disconnect Socket.IO
+  if (socket) {
+    socket.disconnect()
+    socket = null
+  }
 })
 
 // Theo dõi tiêu đề trang hiện tại
