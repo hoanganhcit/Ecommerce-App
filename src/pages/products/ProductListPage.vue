@@ -388,17 +388,40 @@ const filteredProducts = computed(() => {
   // Filter by search query
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      (p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.sku.toLowerCase().includes(query) ||
-        p.category.toLowerCase().includes(query),
-    )
+    filtered = filtered.filter((p) => {
+      const nameMatch = p.name.toLowerCase().includes(query)
+      const skuMatch = p.sku?.toLowerCase().includes(query)
+
+      // Handle category search for both array and single value
+      let categoryMatch = false
+      if (Array.isArray(p.category)) {
+        categoryMatch = p.category.some((cat) => {
+          const catName = typeof cat === 'object' ? cat.name : cat
+          return catName?.toLowerCase().includes(query)
+        })
+      } else {
+        const catName = typeof p.category === 'object' ? p.category.name : p.category
+        categoryMatch = catName?.toLowerCase().includes(query)
+      }
+
+      return nameMatch || skuMatch || categoryMatch
+    })
   }
 
   // Filter by category
   if (selectedCategory.value) {
-    filtered = filtered.filter((p) => p.category === selectedCategory.value)
+    filtered = filtered.filter((p) => {
+      // Handle both array and single category
+      if (Array.isArray(p.category)) {
+        return p.category.some((catId) => {
+          const id = typeof catId === 'object' ? catId._id || catId.id : catId
+          return id === selectedCategory.value
+        })
+      } else {
+        const catId = typeof p.category === 'object' ? p.category._id || p.category.id : p.category
+        return catId === selectedCategory.value
+      }
+    })
   }
 
   // Filter by status

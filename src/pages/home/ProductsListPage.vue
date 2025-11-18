@@ -271,7 +271,18 @@ const filteredProducts = computed(() => {
   if (selectedCategory.value !== 0) {
     const categoryIds = getAllCategoryIds(selectedCategory.value)
     const categorySet = new Set(categoryIds)
-    products = products.filter((product) => categorySet.has(product.category))
+    products = products.filter((product) => {
+      // Handle both array and single category
+      if (Array.isArray(product.category)) {
+        return product.category.some((catId) => {
+          const id = typeof catId === 'object' ? catId._id : catId
+          return categorySet.has(id)
+        })
+      } else {
+        const catId = typeof product.category === 'object' ? product.category._id : product.category
+        return categorySet.has(catId)
+      }
+    })
   }
 
   // Filter by price range - only if user has manually changed it
