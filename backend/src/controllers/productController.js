@@ -15,8 +15,8 @@ export const getProducts = async (req, res) => {
       collections,
       search,
       sort = '-createdAt',
-      page = 1,
-      limit = 12,
+      page,
+      limit,
     } = req.query
 
     // Build query
@@ -38,16 +38,16 @@ export const getProducts = async (req, res) => {
     if (colors) query['colors.name'] = { $in: colors.split(',') }
     if (collections) query.collections = { $in: collections.split(',') }
 
-    // Pagination
-    const skip = (Number(page) - 1) * Number(limit)
-
     // Execute query with populate
-    const products = await Product.find(query)
-      .populate('category', 'name slug')
-      .sort(sort)
-      .limit(Number(limit))
-      .skip(skip)
-      .lean() // Return plain JS objects instead of Mongoose documents for better performance
+    let productsQuery = Product.find(query).populate('category', 'name slug').sort(sort).lean()
+
+    // Apply pagination only if params provided
+    if (page && limit) {
+      const skip = (Number(page) - 1) * Number(limit)
+      productsQuery = productsQuery.limit(Number(limit)).skip(skip)
+    }
+
+    const products = await productsQuery // Return plain JS objects instead of Mongoose documents for better performance
 
     const total = await Product.countDocuments(query)
 
@@ -55,10 +55,10 @@ export const getProducts = async (req, res) => {
       success: true,
       data: products,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : total,
         total,
-        pages: Math.ceil(total / Number(limit)),
+        pages: limit ? Math.ceil(total / Number(limit)) : 1,
       },
     })
   } catch (error) {

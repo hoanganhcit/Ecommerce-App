@@ -76,7 +76,8 @@
         :rows="filteredOrders"
         :columns="columns"
         row-key="id"
-        :pagination="pagination"
+        v-model:pagination="pagination"
+        :rows-per-page-options="[10, 25, 50, 100]"
         :loading="loading"
         flat
         class="orders-table"
@@ -142,6 +143,25 @@
         <template v-slot:body-cell-total="props">
           <q-td :props="props">
             <div class="font-semibold text-gray-900">{{ formatPrice(props.value) }}</div>
+          </q-td>
+        </template>
+
+        <!-- Payment Method Column -->
+        <template v-slot:body-cell-paymentMethod="props">
+          <q-td :props="props">
+            <div class="flex flex-col items-center gap-1">
+              <div class="flex items-center gap-1">
+                <i :class="[getPaymentIcon(props.value), '', getPaymentColor(props.value)]"></i>
+                <span class="font-medium">{{ getPaymentLabel(props.value) }}</span>
+              </div>
+              <q-badge
+                :color="props.row.paymentStatus === 'paid' ? 'green' : 'orange'"
+                size="xs"
+                class="text-xs"
+              >
+                {{ props.row.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}
+              </q-badge>
+            </div>
           </q-td>
         </template>
 
@@ -393,6 +413,12 @@ const columns = [
     sortable: true,
   },
   {
+    name: 'paymentMethod',
+    label: 'Thanh toán',
+    field: 'paymentMethod',
+    align: 'center',
+  },
+  {
     name: 'status',
     label: 'Trạng thái',
     field: 'status',
@@ -563,6 +589,39 @@ const getStatusColor = (status) => {
   return colors[status] || 'grey'
 }
 
+const getPaymentLabel = (method) => {
+  const labels = {
+    cod: 'COD',
+    momo: 'MoMo',
+    vnpay: 'VNPay',
+    bank: 'Chuyển khoản',
+    card: 'Thẻ',
+  }
+  return labels[method] || method?.toUpperCase() || 'N/A'
+}
+
+const getPaymentIcon = (method) => {
+  const icons = {
+    cod: 'fal fa-money-bill-wave',
+    momo: 'fal fa-wallet',
+    vnpay: 'fal fa-credit-card',
+    bank: 'fal fa-university',
+    card: 'fal fa-credit-card',
+  }
+  return icons[method] || 'fal fa-money-bill-wave'
+}
+
+const getPaymentColor = (method) => {
+  const colors = {
+    cod: 'text-green-600',
+    momo: 'text-pink-600',
+    vnpay: 'text-blue-600',
+    bank: 'text-indigo-600',
+    card: 'text-purple-600',
+  }
+  return colors[method] || 'text-gray-600'
+}
+
 const applyFilters = () => {
   // Filters are applied automatically via computed property
   $q.notify({
@@ -606,10 +665,18 @@ const updateOrderStatus = async () => {
       )
 
       if (response.data.success) {
-        selectedOrder.value.status = newStatus.value
+        const updatedOrder = response.data.data
+
+        // Update selectedOrder with all changes including paymentStatus
+        selectedOrder.value.status = updatedOrder.status
+        selectedOrder.value.paymentStatus = updatedOrder.paymentStatus
+        selectedOrder.value.statusHistory = updatedOrder.statusHistory
+
         showEditStatus.value = false
-        // Reload orders to get updated data
+
+        // Reload orders to get updated data for the table
         await loadOrders()
+
         $q.notify({
           type: 'positive',
           message: 'Cập nhật trạng thái thành công',

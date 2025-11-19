@@ -7,7 +7,10 @@
     </div>
 
     <!-- Time Range Filter -->
-    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6 relative">
+      <q-inner-loading :showing="loading" color="primary">
+        <q-spinner-dots size="50px" />
+      </q-inner-loading>
       <div class="flex items-center gap-4">
         <div class="text-sm font-medium text-gray-700">Khoảng thời gian:</div>
         <q-btn-group unelevated>
@@ -18,14 +21,37 @@
             :color="selectedTimeRange === range.value ? 'primary' : 'grey-3'"
             :text-color="selectedTimeRange === range.value ? 'white' : 'grey-8'"
             @click="selectedTimeRange = range.value"
+            :loading="loading"
+            :disable="loading"
             no-caps
           />
         </q-btn-group>
         <q-space />
         <div class="flex gap-2">
-          <q-input v-model="customStartDate" outlined dense type="date" label="Từ ngày" />
-          <q-input v-model="customEndDate" outlined dense type="date" label="Đến ngày" />
-          <q-btn label="Áp dụng" color="primary" unelevated @click="applyCustomRange" />
+          <q-input
+            v-model="customStartDate"
+            outlined
+            dense
+            type="date"
+            label="Từ ngày"
+            :disable="loading"
+          />
+          <q-input
+            v-model="customEndDate"
+            outlined
+            dense
+            type="date"
+            label="Đến ngày"
+            :disable="loading"
+          />
+          <q-btn
+            label="Áp dụng"
+            color="primary"
+            unelevated
+            @click="applyCustomRange"
+            :loading="loading"
+            :disable="loading"
+          />
         </div>
       </div>
     </div>
@@ -35,8 +61,9 @@
       <div
         v-for="stat in revenueStats"
         :key="stat.label"
-        class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+        class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow relative"
       >
+        <q-inner-loading :showing="loading" color="primary" />
         <div class="flex items-center justify-between mb-3">
           <div :class="['w-12 h-12 rounded-full flex items-center justify-center', stat.bgColor]">
             <i :class="[stat.icon, 'text-xl', stat.iconColor]"></i>
@@ -68,55 +95,56 @@
     <!-- Charts Row 1 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- Revenue Chart -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <div class="bg-white rounded-lg border border-gray-200 p-6 relative">
+        <q-inner-loading :showing="loading" color="primary">
+          <q-spinner-dots size="50px" />
+        </q-inner-loading>
         <div class="flex items-center justify-between mb-4">
           <div class="text-lg font-semibold text-gray-900">Doanh thu theo thời gian</div>
           <q-btn-dropdown
             flat
             dense
             color="grey-7"
-            label="Tháng"
+            :label="chartPeriod"
             dropdown-icon="expand_more"
             no-caps
+            :disable="loading"
           >
             <q-list>
-              <q-item clickable v-close-popup>
+              <q-item clickable v-close-popup @click="chartPeriod = 'Ngày'">
                 <q-item-section>Ngày</q-item-section>
               </q-item>
-              <q-item clickable v-close-popup>
+              <q-item clickable v-close-popup @click="chartPeriod = 'Tuần'">
                 <q-item-section>Tuần</q-item-section>
               </q-item>
-              <q-item clickable v-close-popup>
+              <q-item clickable v-close-popup @click="chartPeriod = 'Tháng'">
                 <q-item-section>Tháng</q-item-section>
               </q-item>
             </q-list>
           </q-btn-dropdown>
         </div>
-        <div
-          class="h-80 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg"
-        >
-          <div class="text-center text-gray-400">
-            <i class="fal fa-chart-line text-5xl mb-3"></i>
-            <p class="text-sm">Biểu đồ doanh thu</p>
-            <p class="text-xs">(Tích hợp Chart.js hoặc ApexCharts)</p>
-          </div>
-        </div>
+        <VueApexCharts
+          type="area"
+          height="320"
+          :options="revenueChartOptions"
+          :series="revenueChartSeries"
+        ></VueApexCharts>
       </div>
 
       <!-- Orders Chart -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <div class="bg-white rounded-lg border border-gray-200 p-6 relative">
+        <q-inner-loading :showing="loading" color="primary">
+          <q-spinner-dots size="50px" />
+        </q-inner-loading>
         <div class="flex items-center justify-between mb-4">
           <div class="text-lg font-semibold text-gray-900">Đơn hàng theo trạng thái</div>
         </div>
-        <div
-          class="h-80 flex items-center justify-center border-2 border-dashed border-gray-200 rounded-lg"
-        >
-          <div class="text-center text-gray-400">
-            <i class="fal fa-chart-pie text-5xl mb-3"></i>
-            <p class="text-sm">Biểu đồ tròn trạng thái đơn hàng</p>
-            <p class="text-xs">(Pending, Processing, Shipping, Delivered)</p>
-          </div>
-        </div>
+        <VueApexCharts
+          type="donut"
+          height="320"
+          :options="ordersChartOptions"
+          :series="ordersChartSeries"
+        ></VueApexCharts>
       </div>
     </div>
 
@@ -248,6 +276,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import VueApexCharts from 'vue3-apexcharts'
+
+defineOptions({
+  components: {
+    VueApexCharts,
+  },
+})
 
 const $q = useQuasar()
 
@@ -257,6 +292,7 @@ const customStartDate = ref('')
 const customEndDate = ref('')
 const loading = ref(false)
 const analyticsData = ref(null)
+const chartPeriod = ref('Tháng')
 
 // Time Ranges
 const timeRanges = [
@@ -399,6 +435,158 @@ const applyCustomRange = () => {
   }
   fetchAnalytics()
 }
+
+// Revenue Chart
+const revenueChartSeries = computed(() => {
+  const data = analyticsData.value?.revenueChart || []
+  return [
+    {
+      name: 'Doanh thu',
+      data: data.map((item) => item.revenue || 0),
+    },
+    {
+      name: 'Đơn hàng',
+      data: data.map((item) => (item.orders || 0) * 100000), // Scale for visibility
+    },
+  ]
+})
+
+const revenueChartOptions = computed(() => ({
+  chart: {
+    type: 'area',
+    height: 320,
+    toolbar: {
+      show: false,
+    },
+    zoom: {
+      enabled: false,
+    },
+  },
+  dataLabels: {
+    enabled: false,
+  },
+  stroke: {
+    curve: 'smooth',
+    width: 2,
+  },
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.4,
+      opacityTo: 0.1,
+      stops: [0, 90, 100],
+    },
+  },
+  colors: ['#10b981', '#3b82f6'],
+  xaxis: {
+    categories: analyticsData.value?.revenueChart?.map((item) => item.date) || [],
+    labels: {
+      style: {
+        colors: '#6b7280',
+        fontSize: '12px',
+      },
+    },
+  },
+  yaxis: {
+    labels: {
+      style: {
+        colors: '#6b7280',
+        fontSize: '12px',
+      },
+      formatter: (value) => {
+        return new Intl.NumberFormat('vi-VN', {
+          notation: 'compact',
+          compactDisplay: 'short',
+        }).format(value)
+      },
+    },
+  },
+  legend: {
+    position: 'top',
+    horizontalAlign: 'right',
+    fontSize: '14px',
+    fontWeight: 500,
+  },
+  grid: {
+    borderColor: '#f3f4f6',
+    strokeDashArray: 4,
+  },
+  tooltip: {
+    y: {
+      formatter: (value, { seriesIndex }) => {
+        if (seriesIndex === 0) {
+          return formatPrice(value)
+        }
+        return Math.round(value / 100000) + ' đơn'
+      },
+    },
+  },
+}))
+
+// Orders Chart
+const ordersChartSeries = computed(() => {
+  const stats = analyticsData.value?.orderStats || {}
+  return [
+    stats.pending || 0,
+    stats.processing || 0,
+    stats.shipping || 0,
+    stats.delivered || 0,
+    stats.cancelled || 0,
+  ]
+})
+
+const ordersChartOptions = computed(() => ({
+  chart: {
+    type: 'donut',
+    height: 320,
+  },
+  labels: ['Chờ xác nhận', 'Đang xử lý', 'Đang giao', 'Đã giao', 'Đã hủy'],
+  colors: ['#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#ef4444'],
+  legend: {
+    position: 'bottom',
+    fontSize: '14px',
+  },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '65%',
+        labels: {
+          show: true,
+          name: {
+            show: true,
+            fontSize: '14px',
+            fontWeight: 600,
+          },
+          value: {
+            show: true,
+            fontSize: '20px',
+            fontWeight: 700,
+            formatter: (val) => val,
+          },
+          total: {
+            show: true,
+            label: 'Tổng đơn',
+            fontSize: '14px',
+            color: '#6b7280',
+            formatter: () => {
+              const total = ordersChartSeries.value.reduce((a, b) => a + b, 0)
+              return total
+            },
+          },
+        },
+      },
+    },
+  },
+  dataLabels: {
+    enabled: false,
+  },
+  tooltip: {
+    y: {
+      formatter: (val) => val + ' đơn',
+    },
+  },
+}))
 </script>
 
 <style scoped>

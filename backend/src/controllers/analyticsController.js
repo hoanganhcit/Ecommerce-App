@@ -64,7 +64,7 @@ export const getDashboardAnalytics = async (req, res) => {
     const orders = await Order.find(dateFilter).populate('customer', 'name email')
 
     // Calculate revenue stats
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
     const totalOrders = orders.length
     const newCustomers = await Customer.countDocuments(dateFilter)
 
@@ -81,7 +81,7 @@ export const getDashboardAnalytics = async (req, res) => {
     }
 
     const previousOrders = await Order.find(previousPeriodFilter)
-    const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+    const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.total || 0), 0)
     const previousOrderCount = previousOrders.length
     const previousCustomerCount = await Customer.countDocuments(previousPeriodFilter)
 
@@ -109,17 +109,22 @@ export const getDashboardAnalytics = async (req, res) => {
       revenue: (product.sold || 0) * (product.price || 0),
     }))
 
-    // Get top customers (VIP customers with most orders)
+    // Get top customers (VIP customers with most orders in selected time range)
     const customerOrders = await Order.aggregate([
-      { $match: { customer: { $exists: true } } },
+      {
+        $match: {
+          customer: { $exists: true },
+          ...dateFilter, // Apply date filter to only count orders in selected time range
+        },
+      },
       {
         $group: {
           _id: '$customer',
           orders: { $sum: 1 },
-          spent: { $sum: '$totalAmount' },
+          spent: { $sum: '$total' },
         },
       },
-      { $sort: { orders: -1 } }, // Sort by number of orders (most orders first)
+      { $sort: { spent: -1 } }, // Sort by total spent (highest spending first)
       { $limit: 10 }, // Get top 10 to filter VIP later
     ])
 
@@ -131,7 +136,9 @@ export const getDashboardAnalytics = async (req, res) => {
     // Filter only VIP customers and limit to top 5
     const topCustomers = customerOrders
       .map((co) => {
-        const customer = customers.find((c) => c._id.toString() === co._id.toString())
+        if (!co._id) return null // Skip if no customer ID
+
+        const customer = customers.find((c) => c && c._id && c._id.toString() === co._id.toString())
         if (!customer || customer.status !== 'vip') return null
 
         return {
@@ -217,17 +224,29 @@ export const getDashboardAnalytics = async (req, res) => {
         createdAt: { $gte: date, $lt: nextDate },
       })
 
-      const dayRevenue = dayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+      const dayRevenue = dayOrders.reduce(
+        (sum, order) => sum + (order.total || order.totalAmount || 0),
+        0,
+      )
       const uniqueCustomers = new Set(dayOrders.map((o) => o.customer?.toString())).size
 
       last7Days.push({
-        date: date.toLocaleDateString('vi-VN'),
+        date: date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
         orders: dayOrders.length,
         revenue: dayRevenue,
         customers: uniqueCustomers,
         avgOrder: dayOrders.length > 0 ? dayRevenue / dayOrders.length : 0,
         growth: 0, // TODO: Calculate actual growth
       })
+    }
+
+    // Get order status statistics
+    const orderStats = {
+      pending: orders.filter((o) => o.status === 'pending').length,
+      processing: orders.filter((o) => o.status === 'processing').length,
+      shipping: orders.filter((o) => o.status === 'shipping').length,
+      delivered: orders.filter((o) => o.status === 'delivered').length,
+      cancelled: orders.filter((o) => o.status === 'cancelled').length,
     }
 
     res.json({
@@ -246,6 +265,8 @@ export const getDashboardAnalytics = async (req, res) => {
         topCustomers,
         recentActivities,
         salesData: last7Days,
+        revenueChart: last7Days,
+        orderStats,
       },
     })
   } catch (error) {

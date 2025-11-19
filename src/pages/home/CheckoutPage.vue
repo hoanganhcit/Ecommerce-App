@@ -840,46 +840,107 @@ const handlePlaceOrder = async () => {
         : undefined,
     }
 
-    // Call API to create order
-    const response = await axios.post('http://localhost:5000/api/orders', orderData, {
-      headers: getAuthHeader(),
-    })
+    // Check if payment method is MoMo or VNPay
+    if (form.value.paymentMethod === 'momo' || form.value.paymentMethod === 'vnpay') {
+      // Save order data to sessionStorage (will be created after successful payment)
+      sessionStorage.setItem('pendingOrderData', JSON.stringify(orderData))
+      sessionStorage.setItem('pendingOrderTotal', total.value.toString())
 
-    if (response.data.success) {
-      console.log('Order created:', response.data.data)
+      // Generate temporary order ID for payment
+      const tempOrderId = `TEMP${Date.now()}`
 
-      // Clear cart
-      clearCart()
+      try {
+        let paymentResponse
 
-      // Show success message
-      $q.notify({
-        type: 'positive',
-        message: 'Đặt hàng thành công!',
-        caption: `Mã đơn hàng: ${response.data.data.orderId}`,
-        position: 'top-right',
-        timeout: 3000,
-      })
-
-      // Redirect based on authentication status
-      setTimeout(() => {
-        if (customer.value) {
-          // Logged in customer - redirect to orders page
-          router.push('/orders')
-        } else {
-          // Guest - redirect to shop to continue shopping
-          router.push('/shop')
+        if (form.value.paymentMethod === 'momo') {
+          paymentResponse = await axios.post('http://localhost:5000/api/payment/momo/create', {
+            orderId: tempOrderId,
+            amount: total.value,
+            orderInfo: `Thanh toán đơn hàng`,
+          })
         }
-      }, 2000)
+        // Add VNPay here later
+        // else if (form.value.paymentMethod === 'vnpay') { ... }
+
+        if (paymentResponse.data.success) {
+          // Show notification
+          $q.notify({
+            type: 'info',
+            message: 'Đang chuyển đến trang thanh toán...',
+            position: 'top-right',
+            timeout: 2000,
+          })
+
+          // Redirect to payment gateway
+          setTimeout(() => {
+            window.location.href = paymentResponse.data.data.payUrl
+          }, 1000)
+        } else {
+          throw new Error(paymentResponse.data.message || 'Failed to create payment')
+        }
+      } catch (paymentError) {
+        console.error('Payment error:', paymentError)
+        // Clear pending data on error
+        sessionStorage.removeItem('pendingOrderData')
+        sessionStorage.removeItem('pendingOrderTotal')
+
+        $q.notify({
+          type: 'negative',
+          message: 'Lỗi tạo thanh toán',
+          caption: paymentError.message || 'Vui lòng thử lại',
+          position: 'top-right',
+        })
+        isSubmitting.value = false
+      }
+    } else {
+      // COD or other payment methods - create order immediately
+      try {
+        const response = await axios.post('http://localhost:5000/api/orders', orderData, {
+          headers: getAuthHeader(),
+        })
+
+        if (response.data.success) {
+          const order = response.data.data
+
+          // Clear cart
+          clearCart()
+
+          $q.notify({
+            type: 'positive',
+            message: 'Đặt hàng thành công!',
+            caption: `Mã đơn hàng: ${order.orderId}`,
+            position: 'top-right',
+            timeout: 3000,
+          })
+
+          setTimeout(() => {
+            if (customer.value) {
+              router.push('/orders')
+            } else {
+              router.push('/shop')
+            }
+          }, 2000)
+        }
+      } catch (error) {
+        console.error('Order error:', error)
+        $q.notify({
+          type: 'negative',
+          message: 'Đặt hàng thất bại',
+          caption: error.response?.data?.message || 'Vui lòng thử lại sau',
+          position: 'top-right',
+        })
+      } finally {
+        isSubmitting.value = false
+      }
     }
   } catch (error) {
-    console.error('Order error:', error)
+    console.error('Checkout error:', error)
     $q.notify({
       type: 'negative',
-      message: 'Đặt hàng thất bại',
-      caption: error.response?.data?.message || 'Vui lòng thử lại sau',
+      message: 'Có lỗi xảy ra',
+      caption: error.message || 'Vui lòng thử lại',
       position: 'top-right',
     })
-  } finally {
     isSubmitting.value = false
   }
 }

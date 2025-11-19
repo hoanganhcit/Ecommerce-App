@@ -6,7 +6,7 @@ import Address from '../models/Address.js'
 // @access  Private/Admin
 export const getCustomers = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 10 } = req.query
+    const { status, search, page, limit } = req.query
 
     const query = {}
     if (status && status !== 'all') query.status = status
@@ -18,9 +18,15 @@ export const getCustomers = async (req, res) => {
       ]
     }
 
-    const skip = (Number(page) - 1) * Number(limit)
+    let customersQuery = Customer.find(query).sort('-createdAt')
 
-    const customers = await Customer.find(query).sort('-createdAt').limit(Number(limit)).skip(skip)
+    // Apply pagination only if params provided
+    if (page && limit) {
+      const skip = (Number(page) - 1) * Number(limit)
+      customersQuery = customersQuery.limit(Number(limit)).skip(skip)
+    }
+
+    const customers = await customersQuery
 
     // Get addresses for all customers
     const customerIds = customers.map((c) => c._id)
@@ -29,7 +35,7 @@ export const getCustomers = async (req, res) => {
     // Map addresses to customers
     const customersWithAddresses = customers.map((customer) => {
       const customerAddresses = addresses.filter(
-        (addr) => addr.customer.toString() === customer._id.toString(),
+        (addr) => addr.customer && addr.customer.toString() === customer._id.toString(),
       )
       const defaultAddress =
         customerAddresses.find((addr) => addr.isDefault) || customerAddresses[0]
@@ -47,10 +53,10 @@ export const getCustomers = async (req, res) => {
       success: true,
       data: customersWithAddresses,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : total,
         total,
-        pages: Math.ceil(total / Number(limit)),
+        pages: limit ? Math.ceil(total / Number(limit)) : 1,
       },
     })
   } catch (error) {

@@ -80,6 +80,7 @@ import customerRoutes from './routes/customers.js'
 import categoryRoutes from './routes/categories.js'
 import analyticsRoutes from './routes/analytics.js'
 import settingsRoutes from './routes/settings.js'
+import paymentRoutes from './routes/paymentRoutes.js'
 
 // Use routes
 app.use('/api/auth', authRoutes)
@@ -89,6 +90,7 @@ app.use('/api/customers', customerRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/settings', settingsRoutes)
+app.use('/api/payment', paymentRoutes)
 
 // Error handling middleware
 app.use((err, req, res) => {

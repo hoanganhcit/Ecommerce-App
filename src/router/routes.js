@@ -12,6 +12,10 @@ const routes = [
       { path: 'account', component: () => import('pages/home/MyAccountPage.vue') },
       { path: 'orders', component: () => import('pages/home/MyOrdersPage.vue') },
       { path: 'orders/:id', component: () => import('pages/home/MyOrderDetailPage.vue') },
+      {
+        path: 'payment/momo/result',
+        component: () => import('pages/home/PaymentResultPage.vue'),
+      },
     ],
   },
 

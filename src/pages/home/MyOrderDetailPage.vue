@@ -347,7 +347,7 @@ const paymentMethods = [
   { value: 'cod', label: 'Thanh toán khi nhận hàng (COD)' },
   { value: 'bank', label: 'Chuyển khoản ngân hàng' },
   { value: 'momo', label: 'Ví MoMo' },
-  { value: 'card', label: 'Thẻ tín dụng/Ghi nợ' },
+  { value: 'card', label: 'VNPay' },
 ]
 
 // Load order detail

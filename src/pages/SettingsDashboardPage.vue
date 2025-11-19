@@ -443,8 +443,8 @@ const settings = ref({
       },
       {
         id: 'card',
-        name: 'Thẻ tín dụng/Ghi nợ',
-        description: 'Thanh toán bằng thẻ quốc tế',
+        name: 'VNPay',
+        description: 'Thanh toán bằng VNPay',
         icon: 'fal fa-credit-card',
         enabled: false,
       },

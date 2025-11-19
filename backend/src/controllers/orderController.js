@@ -7,20 +7,29 @@ import Product from '../models/Product.js'
 // @access  Private/Admin
 export const getOrders = async (req, res) => {
   try {
-    const { status, customer, page = 1, limit = 10 } = req.query
+    const { status, customer, page, limit } = req.query
 
     const query = {}
     if (status && status !== 'all') query.status = status
     if (customer) query.customer = customer
 
-    const skip = (Number(page) - 1) * Number(limit)
-
-    const orders = await Order.find(query)
-      .populate('customer', 'fullName email phone avatar')
-      .populate('items.product', 'name images')
-      .sort('-createdAt')
-      .limit(Number(limit))
-      .skip(skip)
+    // If pagination params are provided, use them; otherwise get all
+    let orders
+    if (page && limit) {
+      const skip = (Number(page) - 1) * Number(limit)
+      orders = await Order.find(query)
+        .populate('customer', 'fullName email phone avatar')
+        .populate('items.product', 'name images')
+        .sort('-createdAt')
+        .limit(Number(limit))
+        .skip(skip)
+    } else {
+      // Get all orders without pagination
+      orders = await Order.find(query)
+        .populate('customer', 'fullName email phone avatar')
+        .populate('items.product', 'name images')
+        .sort('-createdAt')
+    }
 
     const total = await Order.countDocuments(query)
 
@@ -28,10 +37,10 @@ export const getOrders = async (req, res) => {
       success: true,
       data: orders,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : total,
         total,
-        pages: Math.ceil(total / Number(limit)),
+        pages: limit ? Math.ceil(total / Number(limit)) : 1,
       },
     })
   } catch (error) {
@@ -296,6 +305,31 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     order.status = status
+
+    // Auto-update paymentStatus for COD orders based on delivery status
+    if (order.paymentMethod === 'cod') {
+      console.log(
+        'COD Order - Previous Status:',
+        previousStatus,
+        '| New Status:',
+        status,
+        '| Current Payment Status:',
+        order.paymentStatus,
+      )
+
+      if (status === 'delivered') {
+        // When delivered, mark as paid
+        console.log('Setting paymentStatus to PAID (delivered)')
+        order.paymentStatus = 'paid'
+      } else if (previousStatus === 'delivered' && status !== 'delivered') {
+        // When status changes from delivered to something else, revert to pending
+        console.log('Setting paymentStatus to PENDING (no longer delivered)')
+        order.paymentStatus = 'pending'
+      }
+
+      console.log('Final Payment Status:', order.paymentStatus)
+    }
+
     order.statusHistory.push({
       status,
       note,
