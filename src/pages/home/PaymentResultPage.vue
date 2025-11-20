@@ -140,16 +140,62 @@ const orderInfo = ref({
   transactionId: '',
 })
 
+// VNPay response codes mapping
+const getVNPayMessage = (code) => {
+  const messages = {
+    '00': 'Giao dịch thành công',
+    '07': 'Trừ tiền thành công. Giao dịch bị nghi ngờ (liên quan tới lừa đảo, giao dịch bất thường).',
+    '09': 'Giao dịch không thành công do: Thẻ/Tài khoản của khách hàng chưa đăng ký dịch vụ InternetBanking tại ngân hàng.',
+    10: 'Giao dịch không thành công do: Khách hàng xác thực thông tin thẻ/tài khoản không đúng quá 3 lần',
+    11: 'Giao dịch không thành công do: Đã hết hạn chờ thanh toán. Xin quý khách vui lòng thực hiện lại giao dịch.',
+    12: 'Giao dịch không thành công do: Thẻ/Tài khoản của khách hàng bị khóa.',
+    13: 'Giao dịch không thành công do Quý khách nhập sai mật khẩu xác thực giao dịch (OTP). Xin quý khách vui lòng thực hiện lại giao dịch.',
+    24: 'Giao dịch không thành công do: Khách hàng hủy giao dịch',
+    51: 'Giao dịch không thành công do: Tài khoản của quý khách không đủ số dư để thực hiện giao dịch.',
+    65: 'Giao dịch không thành công do: Tài khoản của Quý khách đã vượt quá hạn mức giao dịch trong ngày.',
+    75: 'Ngân hàng thanh toán đang bảo trì.',
+    79: 'Giao dịch không thành công do: KH nhập sai mật khẩu thanh toán quá số lần quy định. Xin quý khách vui lòng thực hiện lại giao dịch',
+    99: 'Các lỗi khác (lỗi còn lại, không có trong danh sách mã lỗi đã liệt kê)',
+  }
+  return messages[code] || 'Giao dịch không thành công'
+}
+
 // Check payment result from URL params
 onMounted(async () => {
   try {
-    // MoMo returns these params:
-    // partnerCode, orderId, requestId, amount, orderInfo, orderType,
+    // MoMo returns: partnerCode, orderId, requestId, amount, orderInfo, orderType,
     // transId, resultCode, message, payType, responseTime, extraData, signature
 
-    const { orderId, resultCode, message, transId } = route.query
+    // VNPay returns: vnp_Amount, vnp_BankCode, vnp_BankTranNo, vnp_CardType,
+    // vnp_OrderInfo, vnp_PayDate, vnp_ResponseCode, vnp_TmnCode, vnp_TransactionNo,
+    // vnp_TransactionStatus, vnp_TxnRef, vnp_SecureHash
 
-    console.log('MoMo callback params:', route.query)
+    const queryParams = route.query
+    console.log('Payment callback params:', queryParams)
+
+    // Detect payment gateway type
+    const isVNPay = queryParams.vnp_TxnRef !== undefined
+    const isMoMo = queryParams.partnerCode !== undefined
+
+    let orderId, resultCode, message, transId
+
+    if (isVNPay) {
+      // VNPay params
+      orderId = queryParams.vnp_TxnRef
+      resultCode = queryParams.vnp_ResponseCode // '00' means success
+      transId = queryParams.vnp_TransactionNo || queryParams.vnp_BankTranNo
+      message = getVNPayMessage(resultCode)
+    } else if (isMoMo) {
+      // MoMo params
+      orderId = queryParams.orderId
+      resultCode = queryParams.resultCode // '0' means success
+      transId = queryParams.transId
+      message = queryParams.message
+    } else {
+      paymentStatus.value = null
+      isLoading.value = false
+      return
+    }
 
     if (!orderId) {
       paymentStatus.value = null
@@ -159,8 +205,10 @@ onMounted(async () => {
 
     orderInfo.value.transactionId = transId || ''
 
-    // resultCode = 0 means success
-    if (resultCode === '0') {
+    // Check success: MoMo uses '0', VNPay uses '00'
+    const isSuccess = (isVNPay && resultCode === '00') || (isMoMo && resultCode === '0')
+
+    if (isSuccess) {
       // Payment successful - create order from sessionStorage
       const pendingOrderData = sessionStorage.getItem('pendingOrderData')
 

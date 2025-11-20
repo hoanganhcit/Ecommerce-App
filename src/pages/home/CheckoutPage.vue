@@ -858,9 +858,13 @@ const handlePlaceOrder = async () => {
             amount: total.value,
             orderInfo: `Thanh toán đơn hàng`,
           })
+        } else if (form.value.paymentMethod === 'vnpay') {
+          paymentResponse = await axios.post('http://localhost:5000/api/payment/vnpay/create', {
+            orderId: tempOrderId,
+            amount: total.value,
+            orderInfo: `Thanh toán đơn hàng`,
+          })
         }
-        // Add VNPay here later
-        // else if (form.value.paymentMethod === 'vnpay') { ... }
 
         if (paymentResponse.data.success) {
           // Show notification
@@ -871,7 +875,7 @@ const handlePlaceOrder = async () => {
             timeout: 2000,
           })
 
-          // Redirect to payment gateway
+          // Redirect to payment gateway (both MoMo and VNPay use payUrl)
           setTimeout(() => {
             window.location.href = paymentResponse.data.data.payUrl
           }, 1000)

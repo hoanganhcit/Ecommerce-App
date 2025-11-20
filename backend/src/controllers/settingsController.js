@@ -42,9 +42,9 @@ export const getSettings = async (req, res) => {
               enabled: true,
             },
             {
-              id: 'card',
+              id: 'vnpay',
               name: 'VNPay',
-              description: 'Thanh toán bằng VNPay',
+              description: 'Thanh toán qua cổng VNPay',
               icon: 'fal fa-credit-card',
               enabled: false,
             },

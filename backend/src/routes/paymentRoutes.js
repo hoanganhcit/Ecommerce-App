@@ -1,5 +1,6 @@
 import express from 'express'
 import MoMoService from '../services/momoService.js'
+import VNPayService from '../services/vnpayService.js'
 import Order from '../models/Order.js'
 
 const router = express.Router()
@@ -159,6 +160,190 @@ router.post('/momo/callback', async (req, res) => {
  * @access  Public
  */
 router.get('/momo/check/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params
+
+    const order = await Order.findOne({ orderId: orderId })
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        orderId: order.orderId,
+        paymentStatus: order.paymentStatus,
+        orderStatus: order.status,
+        paymentMethod: order.paymentMethod,
+      },
+    })
+  } catch (error) {
+    console.error('Check payment status error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    })
+  }
+})
+
+/**
+ * @route   POST /api/payment/vnpay/create
+ * @desc    Create VNPay payment URL
+ * @access  Public
+ */
+router.post('/vnpay/create', async (req, res) => {
+  try {
+    const { orderId, amount, orderInfo, bankCode } = req.body
+
+    if (!orderId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: orderId, amount',
+      })
+    }
+
+    // Initialize VNPay service (credentials will be loaded from settings in production)
+    const vnpayService = new VNPayService({
+      tmnCode: process.env.VNPAY_TMN_CODE || 'YOUR_TMN_CODE',
+      hashSecret: process.env.VNPAY_HASH_SECRET || 'YOUR_HASH_SECRET',
+      url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+      returnUrl: process.env.VNPAY_RETURN_URL || 'http://localhost:9000/payment/vnpay/result',
+      ipnUrl: process.env.VNPAY_IPN_URL || 'http://localhost:5000/api/payment/vnpay/callback',
+    })
+
+    // Get IP address
+    const ipAddr =
+      req.headers['x-forwarded-for'] ||
+      req.connection.remoteAddress ||
+      req.socket.remoteAddress ||
+      '127.0.0.1'
+
+    // Create VNPay payment
+    const result = vnpayService.createPaymentUrl({
+      orderId: orderId,
+      amount: amount,
+      orderInfo: orderInfo || `Thanh toán đơn hàng ${orderId}`,
+      ipAddr: ipAddr,
+      locale: 'vn',
+      bankCode: bankCode || '',
+    })
+
+    if (result.success) {
+      res.json({
+        success: true,
+        data: {
+          payUrl: result.paymentUrl,
+          orderId: result.orderId,
+        },
+      })
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+      })
+    }
+  } catch (error) {
+    console.error('VNPay create payment error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create VNPay payment',
+    })
+  }
+})
+
+/**
+ * @route   GET /api/payment/vnpay/callback
+ * @desc    Handle VNPay IPN callback
+ * @access  Public (called by VNPay)
+ */
+router.get('/vnpay/callback', async (req, res) => {
+  try {
+    console.log('VNPay IPN Callback received:', req.query)
+
+    // Initialize VNPay service
+    const vnpayService = new VNPayService({
+      tmnCode: process.env.VNPAY_TMN_CODE || 'YOUR_TMN_CODE',
+      hashSecret: process.env.VNPAY_HASH_SECRET || 'YOUR_HASH_SECRET',
+      url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+    })
+
+    // Verify callback
+    const result = vnpayService.verifyIpnCall(req.query)
+
+    if (!result.success || !result.isValid) {
+      console.error('Invalid VNPay signature:', result)
+      return res.json({
+        RspCode: '97',
+        Message: 'Invalid Signature',
+      })
+    }
+
+    // Find and update order
+    const order = await Order.findOne({ orderId: result.orderId })
+
+    if (!order) {
+      console.error('Order not found:', result.orderId)
+      return res.json({
+        RspCode: '01',
+        Message: 'Order not found',
+      })
+    }
+
+    // Check if already updated
+    if (order.paymentStatus === 'paid') {
+      return res.json({
+        RspCode: '02',
+        Message: 'Order already updated',
+      })
+    }
+
+    // Update order based on response code
+    if (result.responseCode === '00') {
+      // Payment successful
+      order.paymentStatus = 'paid'
+      order.status = 'processing'
+      order.transactionId = result.transactionNo
+      order.paidAt = new Date()
+      await order.save()
+
+      console.log('VNPay payment successful for order:', result.orderId)
+
+      return res.json({
+        RspCode: '00',
+        Message: 'Success',
+      })
+    } else {
+      // Payment failed
+      order.paymentStatus = 'failed'
+      order.status = 'cancelled'
+      await order.save()
+
+      console.log('VNPay payment failed for order:', result.orderId)
+
+      return res.json({
+        RspCode: '00',
+        Message: 'Success',
+      })
+    }
+  } catch (error) {
+    console.error('VNPay IPN callback error:', error)
+    return res.json({
+      RspCode: '99',
+      Message: 'Unknown error',
+    })
+  }
+})
+
+/**
+ * @route   GET /api/payment/vnpay/check/:orderId
+ * @desc    Check VNPay payment status
+ * @access  Public
+ */
+router.get('/vnpay/check/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params
 

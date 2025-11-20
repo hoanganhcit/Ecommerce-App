@@ -16,6 +16,14 @@ const routes = [
         path: 'payment/momo/result',
         component: () => import('pages/home/PaymentResultPage.vue'),
       },
+      {
+        path: 'payment-result',
+        component: () => import('pages/home/PaymentResultPage.vue'),
+      },
+      {
+        path: 'mock-vnpay',
+        component: () => import('pages/home/MockVNPayPage.vue'),
+      },
     ],
   },
 
