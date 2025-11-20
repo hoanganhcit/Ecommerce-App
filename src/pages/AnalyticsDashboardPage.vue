@@ -1,5 +1,9 @@
 <template>
-  <q-page class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonAnalytics v-if="loading" />
+
+  <!-- Main Content -->
+  <q-page v-else class="p-6">
     <!-- Page Header -->
     <div class="mb-6">
       <div class="text-2xl font-bold text-gray-900">Thống kê & Phân tích</div>
@@ -277,6 +281,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
 import VueApexCharts from 'vue3-apexcharts'
+import SkeletonAnalytics from '../components/admin/SkeletonAnalytics.vue'
 
 defineOptions({
   components: {
@@ -290,7 +295,7 @@ const $q = useQuasar()
 const selectedTimeRange = ref('month')
 const customStartDate = ref('')
 const customEndDate = ref('')
-const loading = ref(false)
+const loading = ref(true)
 const analyticsData = ref(null)
 const chartPeriod = ref('Tháng')
 

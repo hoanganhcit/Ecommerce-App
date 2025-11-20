@@ -1,5 +1,9 @@
 <template>
-  <div class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonDashboard v-if="loading" />
+
+  <!-- Main Content -->
+  <div v-else class="p-6">
     <!-- Header -->
     <div class="mb-8">
       <div class="text-3xl font-bold text-gray-800">Dashboard</div>
@@ -265,7 +269,7 @@
                         ? 'bg-green-100 text-green-800'
                         : order.status === 'Processing'
                           ? 'bg-blue-100 text-blue-800'
-                          : 'bg-yellow-100 text-yellow-800',
+                          : 'bg-red-100 text-red-800',
                     ]"
                   >
                     {{ order.status }}
@@ -341,6 +345,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import SkeletonDashboard from '../components/admin/SkeletonDashboard.vue'
 
 // Get admin auth header
 const getAdminAuthHeader = () => {
@@ -349,7 +354,7 @@ const getAdminAuthHeader = () => {
 }
 
 // State
-const loading = ref(false)
+const loading = ref(true)
 const stats = ref({
   totalOrders: 0,
   revenue: 0,
@@ -392,7 +397,13 @@ const loadDashboardData = async () => {
       const deliveredOrders = orders.filter((o) => o.status === 'delivered')
       stats.value.revenue = deliveredOrders.reduce((sum, o) => sum + (o.total || 0), 0)
 
+      console.log('Total Orders:', orders.length)
+      console.log('Delivered Orders:', deliveredOrders.length)
+
       // Calculate revenue by category for Earning Report
+      // Use all orders (not just delivered) to show data even without delivered orders
+      const ordersForEarnings = deliveredOrders.length > 0 ? deliveredOrders : orders
+
       if (categoriesRes.data.success && productsRes.data.success) {
         const categories = categoriesRes.data.data
         const products = productsRes.data.data
@@ -404,15 +415,21 @@ const loadDashboardData = async () => {
           productMap[p._id] = p
         })
 
-        deliveredOrders.forEach((order) => {
+        console.log('Processing orders for earnings:', ordersForEarnings.length)
+
+        ordersForEarnings.forEach((order) => {
+          console.log('Order:', order._id, 'Status:', order.status, 'Items:', order.items?.length)
           order.items?.forEach((item) => {
             // Get product from map
-            const product = productMap[item.product?._id || item.product]
+            const productId = item.product?._id || item.product
+            const product = productMap[productId]
+            console.log('Item product ID:', productId, 'Found product:', !!product)
             if (product && product.category) {
               const categoryId =
                 typeof product.category === 'object' ? product.category._id : product.category
               categoryRevenue[categoryId] =
                 (categoryRevenue[categoryId] || 0) + (item.subtotal || 0)
+              console.log('Added revenue for category:', categoryId, 'Amount:', item.subtotal)
             }
           })
         })
@@ -421,6 +438,8 @@ const loadDashboardData = async () => {
 
         // Map to category names and calculate percentages
         const totalEarnings = Object.values(categoryRevenue).reduce((sum, val) => sum + val, 0)
+        console.log('Total Earnings:', totalEarnings)
+
         earningsByCategory.value = categories
           .map((cat) => ({
             name: cat.name,

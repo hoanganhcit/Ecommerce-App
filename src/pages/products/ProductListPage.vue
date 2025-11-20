@@ -1,5 +1,9 @@
 <template>
-  <div class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonProductList v-if="isLoading" />
+
+  <!-- Main Content -->
+  <div v-else class="p-6">
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center justify-between">
@@ -179,7 +183,20 @@
                 </div>
               </td>
               <td class="px-6 py-4">
-                <span class="text-sm text-gray-700">{{ product.category }}</span>
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="(cat, index) in getCategoryBadges(product)"
+                    :key="index"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                  >
+                    {{ cat }}
+                  </span>
+                  <span
+                    v-if="!product.category || product.category === 'N/A'"
+                    class="text-sm text-gray-500"
+                    >N/A</span
+                  >
+                </div>
               </td>
               <td class="px-6 py-4 text-right">
                 <span class="text-sm font-semibold text-gray-900">{{
@@ -274,6 +291,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import SkeletonProductList from '../../components/admin/SkeletonProductList.vue'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -287,7 +305,7 @@ const itemsPerPage = ref(10)
 const products = ref([])
 const categories = ref([])
 const allCategoryOptions = ref([])
-const isLoading = ref(false)
+const isLoading = ref(true)
 
 const statusOptions = ref(['active', 'inactive'])
 
@@ -303,17 +321,81 @@ const fetchProducts = async () => {
     })
 
     if (response.data.success) {
-      products.value = response.data.data.map((p) => ({
-        id: p._id,
-        name: p.name,
-        sku: p.sku,
-        category: p.category?.name || 'N/A',
-        categoryId: p.category?._id,
-        price: p.price,
-        stock: p.stock,
-        status: p.isActive ? 'active' : 'inactive',
-        image: p.images?.[0] || '',
-      }))
+      products.value = response.data.data.map((p) => {
+        // Handle multiple categories
+        let categoryDisplay = 'N/A'
+        let categoryIds = []
+
+        // Check if category is an array (multiple categories)
+        if (p.category && Array.isArray(p.category) && p.category.length > 0) {
+          categoryDisplay = p.category
+            .map((cat) => {
+              if (typeof cat === 'object' && cat !== null) {
+                return cat.name || 'Unknown'
+              }
+              return cat
+            })
+            .filter((name) => name && name !== 'Unknown')
+            .join(', ')
+
+          if (!categoryDisplay) categoryDisplay = 'N/A'
+
+          categoryIds = p.category
+            .map((cat) => {
+              if (typeof cat === 'object' && cat !== null) {
+                return cat._id || cat.id
+              }
+              return cat
+            })
+            .filter((id) => id)
+        }
+        // Check if categories field exists (alternative field name)
+        else if (p.categories && Array.isArray(p.categories) && p.categories.length > 0) {
+          categoryDisplay = p.categories
+            .map((cat) => {
+              if (typeof cat === 'object' && cat !== null) {
+                return cat.name || 'Unknown'
+              }
+              return cat
+            })
+            .filter((name) => name && name !== 'Unknown')
+            .join(', ')
+
+          if (!categoryDisplay) categoryDisplay = 'N/A'
+
+          categoryIds = p.categories
+            .map((cat) => {
+              if (typeof cat === 'object' && cat !== null) {
+                return cat._id || cat.id
+              }
+              return cat
+            })
+            .filter((id) => id)
+        }
+        // Single category object (old format)
+        else if (p.category && typeof p.category === 'object' && !Array.isArray(p.category)) {
+          categoryDisplay = p.category.name || 'N/A'
+          categoryIds = [p.category._id || p.category.id].filter((id) => id)
+        }
+        // Single category string (ID only)
+        else if (p.category && typeof p.category === 'string') {
+          categoryDisplay = p.category
+          categoryIds = [p.category]
+        }
+
+        return {
+          id: p._id,
+          name: p.name,
+          sku: p.sku,
+          category: categoryDisplay,
+          categoryIds: categoryIds,
+          rawCategories: p.category && Array.isArray(p.category) ? p.category : p.categories || [],
+          price: p.price,
+          stock: p.stock,
+          status: p.isActive ? 'active' : 'inactive',
+          image: p.images?.[0] || '',
+        }
+      })
     }
   } catch (error) {
     console.error('Fetch products error:', error)
@@ -392,17 +474,8 @@ const filteredProducts = computed(() => {
       const nameMatch = p.name.toLowerCase().includes(query)
       const skuMatch = p.sku?.toLowerCase().includes(query)
 
-      // Handle category search for both array and single value
-      let categoryMatch = false
-      if (Array.isArray(p.category)) {
-        categoryMatch = p.category.some((cat) => {
-          const catName = typeof cat === 'object' ? cat.name : cat
-          return catName?.toLowerCase().includes(query)
-        })
-      } else {
-        const catName = typeof p.category === 'object' ? p.category.name : p.category
-        categoryMatch = catName?.toLowerCase().includes(query)
-      }
+      // Search in category display string (which includes all categories)
+      const categoryMatch = p.category?.toLowerCase().includes(query)
 
       return nameMatch || skuMatch || categoryMatch
     })
@@ -411,16 +484,8 @@ const filteredProducts = computed(() => {
   // Filter by category
   if (selectedCategory.value) {
     filtered = filtered.filter((p) => {
-      // Handle both array and single category
-      if (Array.isArray(p.category)) {
-        return p.category.some((catId) => {
-          const id = typeof catId === 'object' ? catId._id || catId.id : catId
-          return id === selectedCategory.value
-        })
-      } else {
-        const catId = typeof p.category === 'object' ? p.category._id || p.category.id : p.category
-        return catId === selectedCategory.value
-      }
+      // Check if selected category ID is in the categoryIds array
+      return p.categoryIds && p.categoryIds.includes(selectedCategory.value)
     })
   }
 
@@ -484,6 +549,19 @@ const deleteProduct = (product) => {
       })
     }
   })
+}
+
+const getCategoryBadges = (product) => {
+  if (!product.category || product.category === 'N/A') {
+    return []
+  }
+  // Ensure it's a string before splitting
+  const categoryStr =
+    typeof product.category === 'string' ? product.category : String(product.category)
+  return categoryStr
+    .split(',')
+    .map((cat) => cat.trim())
+    .filter((cat) => cat && cat !== 'N/A')
 }
 
 const formatVND = (price) => {

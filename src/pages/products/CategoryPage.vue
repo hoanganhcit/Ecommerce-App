@@ -1,5 +1,9 @@
 <template>
-  <div class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonCategoryGrid v-if="loading" />
+
+  <!-- Main Content -->
+  <div v-else class="p-6">
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center justify-between">
@@ -251,6 +255,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import SkeletonCategoryGrid from '../../components/admin/SkeletonCategoryGrid.vue'
 
 const $q = useQuasar()
 
@@ -258,6 +263,7 @@ const $q = useQuasar()
 const showAddDialog = ref(false)
 const editMode = ref(false)
 const isLoading = ref(false)
+const loading = ref(true)
 const categories = ref([])
 
 const categoryForm = ref({
@@ -332,6 +338,7 @@ const filterParentCategories = (val, update) => {
 const fetchCategories = async () => {
   try {
     isLoading.value = true
+    loading.value = true
     const response = await axios.get('http://localhost:5000/api/categories')
 
     console.log('Fetch categories response:', response.data)
@@ -373,6 +380,7 @@ const fetchCategories = async () => {
     })
   } finally {
     isLoading.value = false
+    loading.value = false
   }
 }
 

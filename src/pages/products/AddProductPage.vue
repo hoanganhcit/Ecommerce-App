@@ -1,5 +1,9 @@
 <template>
-  <div class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonProductForm v-if="isLoading" />
+
+  <!-- Main Content -->
+  <div v-else class="p-6">
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center gap-3 mb-2">
@@ -585,10 +589,14 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import SkeletonProductForm from '../../components/admin/SkeletonProductForm.vue'
 
 const router = useRouter()
 const route = useRoute()
 const $q = useQuasar()
+
+// Loading state
+const isLoading = ref(false)
 
 // Check if in edit mode
 const isEditMode = ref(false)
@@ -651,13 +659,18 @@ const allCategoryOptions = ref([])
 
 // Load product data if in edit mode
 onMounted(async () => {
-  // Fetch categories
-  await fetchCategories()
+  isLoading.value = true
+  try {
+    // Fetch categories
+    await fetchCategories()
 
-  if (route.params.id) {
-    isEditMode.value = true
-    productId.value = route.params.id
-    await loadProductData(productId.value)
+    if (route.params.id) {
+      isEditMode.value = true
+      productId.value = route.params.id
+      await loadProductData(productId.value)
+    }
+  } finally {
+    isLoading.value = false
   }
 })
 

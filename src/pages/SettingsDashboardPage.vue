@@ -1,5 +1,9 @@
 <template>
-  <q-page class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonSettings v-if="loading" />
+
+  <!-- Main Content -->
+  <q-page v-else class="p-6">
     <!-- Page Header -->
     <div class="mb-6">
       <div class="text-2xl font-bold text-gray-900">Cài đặt hệ thống</div>
@@ -387,13 +391,14 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useSettingsStore } from 'src/stores/useSettingsStore'
 import axios from 'axios'
+import SkeletonSettings from '../components/admin/SkeletonSettings.vue'
 
 const $q = useQuasar()
 const settingsStore = useSettingsStore()
 
 // State
 const activeSection = ref('general')
-const loading = ref(false)
+const loading = ref(true)
 const logoInput = ref(null)
 
 // Settings Menu

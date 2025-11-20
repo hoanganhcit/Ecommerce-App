@@ -1,5 +1,9 @@
 <template>
-  <q-page class="p-6">
+  <!-- Skeleton Loading -->
+  <SkeletonCustomerList v-if="loading" />
+
+  <!-- Main Content -->
+  <q-page v-else class="p-6">
     <!-- Page Header -->
     <div class="mb-6">
       <div class="text-2xl font-bold text-gray-900">Quản lý khách hàng</div>
@@ -335,6 +339,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
+import SkeletonCustomerList from '../components/admin/SkeletonCustomerList.vue'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -347,7 +352,7 @@ const getAdminAuthHeader = () => {
 
 // State
 const customers = ref([])
-const loading = ref(false)
+const loading = ref(true)
 const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterJoinDate = ref('')
