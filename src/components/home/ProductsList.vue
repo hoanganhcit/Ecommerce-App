@@ -127,20 +127,18 @@
         </div>
 
         <!-- Size Selection -->
-        <div class="mb-6">
-          <label class="block text-sm font-bold text-gray-900 mb-3">
-            Kích thước <span class="text-red-500">*</span>
-          </label>
-          <div class="flex flex-wrap gap-2">
+        <div class="mb-4">
+          <label class="block text-sm font-bold text-gray-900 mb-3 uppercase">Kích thước</label>
+          <div class="flex gap-2">
             <button
-              v-for="size in availableSizes"
+              v-for="size in sizes"
               :key="size"
               @click="availableSizesForColor.has(size) && (selectedSize = size)"
               :disabled="!availableSizesForColor.has(size)"
               :class="[
-                'px-4 py-2 border-2 rounded-lg text-sm font-medium transition-all',
+                'px-3 text-sm py-1 border-1 rounded font-semibold transition-all',
                 selectedSize === size
-                  ? 'border-gray-900 bg-gray-900 text-white'
+                  ? 'border-black bg-black text-white'
                   : availableSizesForColor.has(size)
                     ? 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
                     : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50',
@@ -152,30 +150,32 @@
         </div>
 
         <!-- Color Selection -->
-        <div class="mb-6">
-          <label class="block text-sm font-bold text-gray-900 mb-3">
-            Màu sắc <span class="text-red-500">*</span>
-          </label>
-          <div class="flex flex-wrap gap-3">
+        <div class="mb-4">
+          <label class="block text-sm font-bold text-gray-900 mb-3 uppercase">Màu sắc</label>
+          <div class="flex gap-3">
             <button
               v-for="color in availableColorsForSize"
               :key="color.name"
-              @click="color.available && (selectedColor = color.name)"
+              @click="handleColorClick(color)"
               :disabled="!color.available"
-              class="flex flex-col items-center gap-2"
+              :class="[
+                'flex flex-col items-center gap-1',
+                !color.available && 'cursor-not-allowed',
+              ]"
             >
               <div
                 :class="[
                   'w-8 h-8 rounded-full border-2 transition-all relative',
                   selectedColor === color.name
-                    ? 'border-gray-900 scale-110'
+                    ? 'border-black scale-110'
                     : color.available
                       ? 'border-gray-200 hover:border-gray-400'
                       : 'border-gray-200 opacity-40',
-                  !color.available && 'cursor-not-allowed',
                 ]"
                 :style="{ backgroundColor: color.value }"
+                :title="color.name"
               >
+                <!-- X mark for unavailable colors -->
                 <div
                   v-if="!color.available"
                   class="absolute inset-0 flex items-center justify-center"
@@ -209,8 +209,8 @@
                 <i class="fal fa-plus"></i>
               </button>
             </div>
-            <span v-if="selectedVariantStock !== null" class="text-sm text-gray-600">
-              Còn {{ selectedVariantStock }} sản phẩm
+            <span v-if="availableStock !== null" class="text-sm text-gray-600">
+              Còn {{ availableStock }} sản phẩm
             </span>
           </div>
         </div>
@@ -242,9 +242,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useCartStore } from 'src/stores/useCartStore'
 import { useQuasar } from 'quasar'
+import axios from 'axios'
 
 // Props
 defineProps({
@@ -273,39 +274,63 @@ const selectedColor = ref(null)
 const quantity = ref(1)
 const isAdding = ref(false)
 
-// Computed
-const availableSizes = computed(() => {
-  if (!selectedProduct.value) return []
-  // Get sizes directly from product.sizes array
-  return selectedProduct.value.sizes || []
+// Variations - Computed from product data
+const sizes = computed(() => {
+  if (!selectedProduct.value?.sizes) return []
+  return selectedProduct.value.sizes
 })
 
-const availableColors = computed(() => {
-  if (!selectedProduct.value) return []
-  // Get colors from product.colors array and format them
-  return (selectedProduct.value.colors || []).map((color) => ({
-    name: color.name,
-    value: color.hex,
-  }))
+const colors = computed(() => {
+  if (!selectedProduct.value?.colors) return []
+  return selectedProduct.value.colors.map((c) => ({ name: c.name, value: c.hex }))
 })
 
-// Get available sizes for selected color (all sizes available in new model)
+// Get available sizes for selected color
 const availableSizesForColor = computed(() => {
-  return new Set(availableSizes.value)
+  if (!selectedColor.value || !selectedProduct.value?.variants) {
+    return new Set(sizes.value)
+  }
+
+  // Get sizes that have stock for selected color
+  const availableSizes = selectedProduct.value.variants
+    .filter((v) => v.color === selectedColor.value && v.stock > 0)
+    .map((v) => v.size)
+
+  return new Set(availableSizes)
 })
 
-// Get available colors for selected size (all colors available in new model)
+// Get available colors for selected size
 const availableColorsForSize = computed(() => {
-  return availableColors.value.map((color) => ({
+  if (!selectedSize.value || !selectedProduct.value?.variants) {
+    return colors.value.map((color) => ({
+      ...color,
+      available: true,
+    }))
+  }
+
+  // Get colors that have stock for selected size
+  const availableColorNames = selectedProduct.value.variants
+    .filter((v) => v.size === selectedSize.value && v.stock > 0)
+    .map((v) => v.color)
+
+  return colors.value.map((color) => ({
     ...color,
-    available: true,
+    available: availableColorNames.includes(color.name),
   }))
 })
 
-const selectedVariantStock = computed(() => {
-  if (!selectedProduct.value) return null
-  // Use product total stock in new model
-  return selectedProduct.value.stock || 0
+// Available stock - check variant stock based on selected size and color
+const availableStock = computed(() => {
+  if (!selectedProduct.value || !selectedSize.value || !selectedColor.value) {
+    return selectedProduct.value?.stock || 0
+  }
+
+  // Find variant matching selected size and color
+  const variant = selectedProduct.value.variants?.find(
+    (v) => v.size === selectedSize.value && v.color === selectedColor.value,
+  )
+
+  return variant?.stock || 0
 })
 
 // Methods
@@ -316,41 +341,65 @@ const formatPrice = (price) => {
   }).format(price)
 }
 
+const handleColorClick = (color) => {
+  if (color.available) {
+    selectedColor.value = color.name
+  }
+}
+
 const handleProductClick = (product) => {
   emit('product-click', product)
 }
 
-const handleAddToCart = (product) => {
-  selectedProduct.value = product
-  selectedSize.value = null
-  selectedColor.value = null
-  quantity.value = 1
-  showQuickAdd.value = true
+const handleAddToCart = async (product) => {
+  // Fetch full product details from API to get variants
+  try {
+    const response = await axios.get(`http://localhost:5000/api/products/${product.id}`)
+
+    if (response.data.success) {
+      const productData = response.data.data
+
+      // Transform product data to match expected structure
+      selectedProduct.value = {
+        id: productData._id,
+        name: productData.name,
+        slug: productData.slug,
+        description: productData.description,
+        price: productData.price,
+        originalPrice: productData.originalPrice,
+        discount: productData.discount,
+        image: productData.images?.[0] || '',
+        images: productData.images || [],
+        category: productData.category?.name || '',
+        sizes: productData.sizes || [],
+        colors: productData.colors || [],
+        variants: productData.variants || [],
+        stock: productData.stock || 0,
+      }
+
+      selectedSize.value = null
+      selectedColor.value = null
+      quantity.value = 1
+      showQuickAdd.value = true
+    }
+  } catch (error) {
+    console.error('Error loading product details:', error)
+    $q.notify({
+      message: 'Không thể tải thông tin sản phẩm',
+      color: 'negative',
+      icon: 'error',
+      position: 'top-right',
+    })
+  }
 }
 
 const handleToggleFavorite = (product) => {
   emit('toggle-favorite', product)
 }
 
-// Watch for selection changes to validate combinations
-watch([selectedSize, selectedColor], () => {
-  if (selectedSize.value && selectedColor.value && selectedProduct.value) {
-    // In new model, all size/color combinations are valid if product has stock
-    if (selectedProduct.value.stock <= 0) {
-      $q.notify({
-        message: 'Sản phẩm hiện đã hết hàng',
-        color: 'warning',
-        icon: 'warning',
-        position: 'top-right',
-      })
-    }
-  }
-})
-
 const increaseQuantity = () => {
-  if (selectedVariantStock.value && quantity.value < selectedVariantStock.value) {
-    quantity.value++
-  } else if (!selectedVariantStock.value) {
+  const maxStock = availableStock.value || 99
+  if (quantity.value < maxStock) {
     quantity.value++
   }
 }
@@ -372,10 +421,10 @@ const confirmAddToCart = () => {
     return
   }
 
-  // Check stock availability
-  if (selectedProduct.value.stock < quantity.value) {
+  // Check stock availability for specific variant
+  if (availableStock.value < quantity.value) {
     $q.notify({
-      message: `Chỉ còn ${selectedProduct.value.stock} sản phẩm trong kho`,
+      message: `Chỉ còn ${availableStock.value} sản phẩm cho size ${selectedSize.value} màu ${selectedColor.value}`,
       color: 'warning',
       icon: 'warning',
       position: 'top-right',
@@ -390,8 +439,7 @@ const confirmAddToCart = () => {
     const variant = {
       size: selectedSize.value,
       color: selectedColor.value,
-      colorCode:
-        availableColors.value.find((c) => c.name === selectedColor.value)?.value || '#000000',
+      colorCode: colors.value.find((c) => c.name === selectedColor.value)?.value || '#000000',
     }
 
     // Add to cart store

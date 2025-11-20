@@ -21,7 +21,32 @@ export const useCartStore = defineStore('cart', () => {
 
   // Save cart to localStorage
   const saveCart = () => {
-    localStorage.setItem('cart', JSON.stringify(cartItems.value))
+    try {
+      // Optimize cart data - only save essential fields to avoid quota exceeded error
+      const optimizedCart = cartItems.value.map((item) => ({
+        id: item.id,
+        product: {
+          id: item.product.id || item.product._id,
+          name: item.product.name,
+          price: item.product.price,
+          slug: item.product.slug,
+          images: item.product.images ? [item.product.images[0]] : [], // Only save first image
+          category: item.product.category,
+        },
+        variant: item.variant,
+        quantity: item.quantity,
+      }))
+
+      localStorage.setItem('cart', JSON.stringify(optimizedCart))
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error)
+      // If quota exceeded, try to clear old cart and save again
+      if (error.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded, clearing cart...')
+        localStorage.removeItem('cart')
+        alert('Giỏ hàng đã đầy. Vui lòng thanh toán hoặc xóa bớt sản phẩm.')
+      }
+    }
   }
 
   // Add item to cart
