@@ -309,9 +309,19 @@ const filteredProducts = computed(() => {
   // Filter by collection - use Set for O(1) lookup
   if (selectedCollections.value.length > 0) {
     const collectionSet = new Set(selectedCollections.value)
-    products = products.filter((product) =>
-      product.collections?.some((collection) => collectionSet.has(collection)),
-    )
+    products = products.filter((product) => {
+      // product.collections is array of strings (collection names or IDs)
+      // selectedCollections contains collection IDs
+      // Need to match by ID
+      if (!product.collections || product.collections.length === 0) return false
+
+      return product.collections.some((collectionId) => {
+        // Handle both string IDs and object refs
+        const id =
+          typeof collectionId === 'object' ? collectionId._id || collectionId.id : collectionId
+        return collectionSet.has(id)
+      })
+    })
   }
 
   return products

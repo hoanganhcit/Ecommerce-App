@@ -1,9 +1,8 @@
 <template>
   <!-- Skeleton Loading -->
-  <SkeletonProductForm v-if="isLoading" />
 
   <!-- Main Content -->
-  <div v-else class="p-6">
+  <div class="p-6">
     <!-- Header -->
     <div class="mb-6">
       <div class="flex items-center gap-3 mb-2">
@@ -405,13 +404,19 @@
                 <!-- Save All Button -->
                 <q-btn
                   icon="save"
-                  label="Save All Variants"
+                  :label="isLoading ? 'Saving...' : 'Save All Variants'"
                   color="positive"
                   unelevated
                   no-caps
                   class="w-full"
+                  :loading="isLoading"
+                  :disable="isLoading"
                   @click="saveAllVariants"
-                />
+                >
+                  <template v-slot:loading>
+                    <q-spinner-dots />
+                  </template>
+                </q-btn>
               </div>
 
               <!-- Variants List by Size -->
@@ -561,14 +566,28 @@
         <div class="">
           <div class="grid gap-4 grid-cols-2">
             <q-btn
-              :label="isEditMode ? 'Update Product' : 'Save Product'"
+              :label="
+                isLoading
+                  ? isEditMode
+                    ? 'Updating...'
+                    : 'Saving...'
+                  : isEditMode
+                    ? 'Update Product'
+                    : 'Save Product'
+              "
               :icon="isEditMode ? 'update' : 'save'"
               color="primary"
               unelevated
               no-caps
               class="w-full"
+              :loading="isLoading"
+              :disable="isLoading"
               @click="saveProduct"
-            />
+            >
+              <template v-slot:loading>
+                <q-spinner-dots />
+              </template>
+            </q-btn>
             <q-btn
               label="Cancel"
               outline
@@ -589,7 +608,6 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import axios from 'axios'
-import SkeletonProductForm from '../../components/admin/SkeletonProductForm.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -1019,6 +1037,8 @@ const getTotalVariantsCount = () => {
 const saveProduct = async () => {
   if (!validateForm()) return
 
+  isLoading.value = true
+
   try {
     const token = localStorage.getItem('adminToken')
 
@@ -1148,6 +1168,8 @@ const saveProduct = async () => {
       message: error.response?.data?.message || 'Failed to save product',
       position: 'top',
     })
+  } finally {
+    isLoading.value = false
   }
 }
 

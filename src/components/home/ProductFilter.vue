@@ -157,7 +157,7 @@
         </div>
 
         <!-- Collection Filter -->
-        <div class="bg-white rounded-lg border border-gray-200 p-4">
+        <!-- <div class="bg-white rounded-lg border border-gray-200 p-4">
           <div class="text-sm font-bold text-gray-900 mb-4 uppercase">
             <i class="fal fa-layer-group mr-2"></i>Bộ sưu tập
           </div>
@@ -177,7 +177,7 @@
               <span class="text-sm text-gray-700 font-medium">{{ collection.name }}</span>
             </label>
           </div>
-        </div>
+        </div> -->
 
         <!-- Clear Filters Button -->
         <button
