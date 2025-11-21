@@ -124,8 +124,8 @@ export const loginCustomer = async (req, res) => {
       })
     }
 
-    // Check if customer is active
-    if (customer.status !== 'active') {
+    // Check if customer is active or VIP (only block inactive accounts)
+    if (customer.status === 'inactive') {
       return res.status(401).json({
         success: false,
         message: 'Tài khoản đã bị khóa',
